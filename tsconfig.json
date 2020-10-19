@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"target": "ES2018",
+		"noImplicitAny": true,
+		"strictPropertyInitialization": true,
+		"strictNullChecks": true,
+		"noImplicitReturns": true,
+		"removeComments": true,
+		"preserveConstEnums": true,
+		"sourceMap": true,
+		"types": [],
+		"baseUrl": "src",
+		"paths": {
+			"elm-app": [ "../../elm-app/src/index" ]
+		}
+	},
+	"include": [
+		"src/**/*"
+	]
+}
