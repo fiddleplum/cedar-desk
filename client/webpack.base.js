@@ -41,7 +41,10 @@ module.exports = {
 				from: 'src/config.js',
 				noErrorOnMissing: true
 			}, {
-				from: 'src/favicon.*',
+				from: 'src/icon.svg',
+				noErrorOnMissing: true
+			}, {
+				from: 'src/manifest.webmanifest',
 				noErrorOnMissing: true
 			}, {
 				from: 'src/assets',

@@ -1,0 +1,15 @@
+{
+	"background_color": "white",
+	"description": "Cedar Desk",
+	"display": "fullscreen",
+	"icons": [
+		{
+		"src": "icon.svg",
+		"sizes": "192x192",
+		"type": "image/svg+xml"
+		}
+	],
+	"name": "Cedar Desk",
+	"short_name": "Cedar Desk",
+	"start_url": "/cedar-desk/index.html"
+}
