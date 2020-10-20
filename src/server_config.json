@@ -1,0 +1,21 @@
+{
+	"tables": [{
+		"name": "users",
+		"fields": [{
+			"name": "username",
+			"type": "string"
+		}, {
+			"name": "password",
+			"type": "string"
+		}]
+	}, {
+		"name": "notes",
+		"fields": [{
+			"name": "text",
+			"type": "string"
+		}, {
+			"date": "text",
+			"type": "number"
+		}]
+	}]
+}
