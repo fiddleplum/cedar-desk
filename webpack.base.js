@@ -11,8 +11,9 @@ module.exports = {
 		plugins: [new TSConfigPathsWebpackPlugin()]
 	},
 	devServer:{
-		contentBase: 'src',
-		watchContentBase: true
+		contentBase: 'src/',
+		watchContentBase: true,
+		stats: 'errors-only'
 	},
 	watchOptions: {
 		aggregateTimeout: 1000,
@@ -29,9 +30,6 @@ module.exports = {
 	},
 	stats: {
 		assets: false,
-	},
-	devServer: {
-		stats: 'errors-only'
 	},
 	plugins: [
 		new CopyWebpackPlugin({
