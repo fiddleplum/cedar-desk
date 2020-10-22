@@ -1,21 +1,27 @@
 {
-	"tables": [{
-		"name": "users",
-		"fields": [{
-			"name": "username",
-			"type": "string"
-		}, {
-			"name": "password",
-			"type": "string"
-		}]
-	}, {
-		"name": "notes",
-		"fields": [{
-			"name": "text",
-			"type": "string"
-		}, {
-			"date": "text",
-			"type": "number"
-		}]
-	}]
+	"tables": {
+		"users": {
+			"indexOfId": 0,
+			"fields": [{
+				"name": "username",
+				"type": "string"
+			}, {
+				"name": "password",
+				"type": "string"
+			}]
+		},
+		"notes": {
+			"indexOfId": 0,
+			"fields": [{
+				"name": "id",
+				"type": "number"
+			}, {
+				"name": "text",
+				"type": "string"
+			}, {
+				"date": "text",
+				"type": "number"
+			}]
+		}
+	}
 }

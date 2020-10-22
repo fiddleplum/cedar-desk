@@ -5,15 +5,17 @@ export class CedarDeskApp extends SimpleApp {
 	constructor() {
 		super();
 
-		console.log('here');
-
 		this.title('Cedar Desk');
 
 		this._ws = new WS('localhost:8081');
 		this._ws.getReadyPromise().then(() => {
-			this._ws.send({
-				test: 'test2'
+			return this._ws.send({
+				command: 'set',
+				table: 'users',
+				dataRecords: [['bob', '1234']],
 			});
+		}).then((user) => {
+			console.log(user);
 		});
 	}
 
