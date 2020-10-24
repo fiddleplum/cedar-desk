@@ -21,6 +21,7 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** Destructs the app. */
 	destroy(): void {
+		this._ws.close();
 	}
 
 	private _ws: WS;
