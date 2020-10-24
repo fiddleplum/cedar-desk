@@ -7,16 +7,48 @@ export class CedarDeskApp extends SimpleApp {
 
 		this.title('Cedar Desk');
 
-		this._ws = new WS('localhost:8081');
+		try {
+			this._ws = new WS('localhost:8081');
+		}
+		catch (error) {
+			throw new Error(`Error connecting to web socket server: ${error.message}`);
+		}
+		// this._ws.getReadyPromise().then(() => {
+		// 	return this._ws.send({
+		// 		command: 'create user',
+		// 		user: 'fiddleplum2',
+		// 		password: '1234'
+		// 	});
+		// }).then((user) => {
+		// 	console.log(user);
+		// });
 		this._ws.getReadyPromise().then(() => {
 			return this._ws.send({
-				command: 'set',
-				table: 'users',
-				dataRecords: [['bob', '1234']],
+				command: 'login',
+				user: 'fiddleplum2',
+				password: '1234'
 			});
 		}).then((user) => {
 			console.log(user);
 		});
+		// this._ws.getReadyPromise().then(() => {
+		// 	return this._ws.send({
+		// 		command: 'get',
+		// 		table: 'users',
+		// 		record: 'fiddleplum'
+		// 	});
+		// }).then((user) => {
+		// 	console.log(user);
+		// });
+		// this._ws.getReadyPromise().then(() => {
+		// 	return this._ws.send({
+		// 		command: 'set',
+		// 		table: 'users',
+		// 		records: [['bob', '1234']],
+		// 	});
+		// }).then((user) => {
+		// 	console.log(user);
+		// });
 	}
 
 	/** Destructs the app. */
@@ -24,17 +56,15 @@ export class CedarDeskApp extends SimpleApp {
 		this._ws.close();
 	}
 
+	// private _checkLogin(): void {
+	// 	this._ws.send({
+
+	// 	}).then((valid) => {
+	// 	});
+	// }
+
 	private _ws: WS;
 }
-
-// CedarDeskApp.html = /* html */`
-// 	<div style="width: 100%; height: 100%;"></div>
-// 	<div id="menu">
-// 		<div id="title">
-// 			Cedar Desk
-// 		</div>
-// 	</div>
-// 	`;
 
 CedarDeskApp.css = /* css */`
 	body {
