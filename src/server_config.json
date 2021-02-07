@@ -1,7 +1,7 @@
 {
 	"tables": {
-		"notes": {
-			"indexOfId": 0,
+		"tasks": {
+			"index-of-id": 0,
 			"fields": [{
 				"name": "id",
 				"type": "number"
@@ -9,7 +9,10 @@
 				"name": "text",
 				"type": "string"
 			}, {
-				"date": "text",
+				"name": "time-created",
+				"type": "number"
+			}, {
+				"name": "time-modified",
 				"type": "number"
 			}]
 		}
