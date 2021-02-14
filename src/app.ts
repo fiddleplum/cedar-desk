@@ -12,16 +12,15 @@ export class CedarDeskApp extends SimpleApp {
 
 	private async initialize(): Promise<void> {
 		// Set the title.
-		this.setTitle('Cedar Desk');
+		this.setTitleHTML('Cedar Desk');
 
 		// Register all of the pages.
 		this.registerPage('', MainPage);
 		this.registerPage('login', LoginPage);
 
-		// this.insertHtml(this.element('page', HTMLDivElement), null, '<MessagePage message="Hello"></MessagePage>');
-
 		// Load the config.
 		try {
+			this.setMessage('Loading Configuration');
 			const configJSON = await download('config.json', 'json');
 			if (configJSON !== null && typeof configJSON === 'object' && !Array.isArray(configJSON)) {
 				let key: keyof typeof configJSON;
@@ -36,13 +35,12 @@ export class CedarDeskApp extends SimpleApp {
 		catch { /* do nothing. */ }
 
 		// Connect to the web server.
+		this.setMessage('Connecting to Server');
 		const serverURL = this._config.get('serverURL');
 		if (typeof serverURL !== 'string' || serverURL === '') {
 			this.setMessage('The config.json must have a "serverURL" attribute where the web socket can connect to.');
 			return;
 		}
-
-		// Connect to the server.
 		try {
 			await this._ws.connect(serverURL);
 		}
@@ -57,13 +55,30 @@ export class CedarDeskApp extends SimpleApp {
 		console.log(user, session);
 		// If so, try to authenticate with the server.
 		if (user !== undefined && session !== undefined) {
-			await this._ws.send({
-				command: 'authenticate',
-				user,
-				session });
+			this.setMessage('Logging In');
+			try {
+				await this._ws.send({
+					command: 'authenticate',
+					user,
+					session });
+				this.setMenu('<button onclick="{$_logout$}">Log Out</button>');
+			}
+			catch {
+				Cookies.set('user', '', 0);
+				Cookies.set('session', '', 0);
+				const prevPage = this.router.getValue('page');
+				console.log(prevPage);
+				this.router.replaceQuery({
+					page: 'login',
+					prevPage: prevPage !== undefined ? prevPage : ''
+				}, true);
+			}
 		}
 		else {
+			Cookies.set('user', '', 0);
+			Cookies.set('session', '', 0);
 			const prevPage = this.router.getValue('page');
+			console.log(prevPage);
 			this.router.pushQuery({
 				page: 'login',
 				prevPage: prevPage !== undefined ? prevPage : ''
@@ -133,6 +148,12 @@ export class CedarDeskApp extends SimpleApp {
 		return this._ws;
 	}
 
+	private _logout(): void {
+		Cookies.set('user', '', 0);
+		Cookies.set('session', '', 0);
+		location.reload();
+	}
+
 	/** The config. */
 	private _config: Map<string, string | number | boolean> = new Map();
 
@@ -155,38 +176,46 @@ CedarDeskApp.css = /* css */`
 		--bg: #ccddff;
 		--border: #aabbff;
 		--fg: #000000;
+		font-size: 2rem;
 	}
 
 	body {
-		font-size: 2rem;
-		line-height: 2rem;
+		font-size: 1rem;
+		line-height: 1rem;
 	}
 
-	p:first-child {
+	#page p:first-child {
 		margin-top: 0;
 	}
 
-	p {
+	#page p {
 		margin: 1rem 0 0 0;
 		max-width: 100%;
 	}
 
-	label {
+	#page label {
 		display: inline-block;
-		height: 2rem;
+		height: 1rem;
 	}
 
-	button, input {
+	#page button, input {
+		display: inline-block;
 		border: 0;
 		border-radius: .25rem;
-		padding: .25rem;
+		outline: 0;
+		padding: .25rem .5rem;
 		max-width: 100%;
 		background: var(--bg);
 		color: var(--fg);
-		font-size: 2rem;
-		line-height: 2.5rem;
-		height: 3rem;
+		font-size: inherit;
+		line-height: 1.5rem;
+		height: 2rem;
 	}
+
+	#page input:focus {
+		box-shadow: 0 0 .125em .125em var(--border);
+	}
+	
 
 	// body {
 	// 	margin: 0;

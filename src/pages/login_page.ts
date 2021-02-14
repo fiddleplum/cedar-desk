@@ -16,17 +16,16 @@ export class LoginPage extends SimpleApp.Page {
 			user,
 			password
 		}).then((response) => {
-			console.log(response);
 			const session = response.session;
 			if (typeof session === 'string') {
 				Cookies.set('user', user, 3600 * 24 * 7);
 				Cookies.set('session', session, 3600 * 24 * 7);
 				const prevPage = this.app.router.getValue('prevPage');
-				console.log('prevPage: ', prevPage);
-				this.app.router.pushQuery({
+				this.app.router.replaceQuery({
 					page: prevPage !== undefined ? prevPage : '',
 					prevPage: ''
 				}, true);
+				location.reload();
 			}
 			else {
 				this.app.setMessage('Server error, please try again.');
@@ -39,19 +38,31 @@ export class LoginPage extends SimpleApp.Page {
 
 LoginPage.html = /* html */`
 	<p>Welcome! Please login.</p>
-	<p><label for="username">Username:</label> <input id="user" name="user" type="text"></input></p>
-	<p><label for="password">Password:</label> <input id="password" name="password" type="password"></input></p>
+	<p><label for="username">Username:</label><input id="user" name="user" type="text"></input></p>
+	<p><label for="password">Password:</label><input id="password" name="password" type="password"></input></p>
 	<p><button id="submit" onclick="{$_login$}">Login</button></p>
 	`;
 
 LoginPage.css = /* css */`
-	label {
-		display: inline-block;
-		width: 5em;
+	.LoginPage label {
+		width: 5rem;
 	}
-	input {
-		display: inline-block;
-		width: 6em;
+	.LoginPage input {
+		width: 6rem;
+	}
+	.LoginPage button {
+		width: 11rem;
+	}
+	@media only screen and (max-width: 25rem) {
+		.LoginPage label {
+			width: 50%;
+		}
+		.LoginPage input {
+			width: 50%;
+		}
+		.LoginPage button {
+			width: 100%;
+		}
 	}
 	`;
 
