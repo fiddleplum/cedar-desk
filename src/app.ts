@@ -1,4 +1,4 @@
-import { SimpleApp, Cookies, WS, JSONType, download, isIn } from 'elm-app';
+import { SimpleApp, Cookies, WS, download } from 'elm-app';
 import { LoginPage } from 'pages/login_page';
 import { MainPage } from 'pages/main_page';
 
@@ -49,10 +49,9 @@ export class CedarDeskApp extends SimpleApp {
 			return;
 		}
 
-		// Check if there is a session cookie.
+		// Authenticate the user or go to the login page.
 		const user = Cookies.get('user');
 		const session = Cookies.get('session');
-		console.log(user, session);
 		// If so, try to authenticate with the server.
 		if (user !== undefined && session !== undefined) {
 			this.setMessage('Logging In');
@@ -64,75 +63,14 @@ export class CedarDeskApp extends SimpleApp {
 				this.setMenu('<button onclick="{$_logout$}">Log Out</button>');
 			}
 			catch {
-				Cookies.set('user', '', 0);
-				Cookies.set('session', '', 0);
-				const prevPage = this.router.getValue('page');
-				console.log(prevPage);
-				this.router.replaceQuery({
-					page: 'login',
-					prevPage: prevPage !== undefined ? prevPage : ''
-				}, true);
+				this._goToLoginPage();
 			}
 		}
 		else {
-			Cookies.set('user', '', 0);
-			Cookies.set('session', '', 0);
-			const prevPage = this.router.getValue('page');
-			console.log(prevPage);
-			this.router.pushQuery({
-				page: 'login',
-				prevPage: prevPage !== undefined ? prevPage : ''
-			}, true);
+			this._goToLoginPage();
 		}
 
 		this.router.processURL();
-
-
-
-
-
-
-		// this._ws.getReadyPromise().then(() => {
-		// 	return this._ws.send({
-		// 		command: 'create user',
-		// 		user: 'fiddleplum2',
-		// 		password: '1234'
-		// 	});
-		// }).then((user) => {
-		// 	console.log(user);
-		// });
-		// this._ws.getReadyPromise().then(() => {
-		// 	return this._ws.send({
-		// 		command: 'login',
-		// 		user: 'fiddleplum2',
-		// 		password: '1234'
-		// 	});
-		// }).then((response) => {
-		// 	console.log(response);
-		// 	const session = response.session;
-		// 	if (typeof session === 'string') {
-		// 		Cookies.set('session', session, 3600 * 24 * 7);
-		// 	}
-		// });
-		// this._ws.getReadyPromise().then(() => {
-		// 	return this._ws.send({
-		// 		command: 'get',
-		// 		table: 'users',
-		// 		record: 'fiddleplum',
-		// 		session: Cookies.get('session')
-		// 	});
-		// }).then((user) => {
-		// 	console.log(user);
-		// });
-		// this._ws.getReadyPromise().then(() => {
-		// 	return this._ws.send({
-		// 		command: 'set',
-		// 		table: 'users',
-		// 		records: [['bob', '1234']],
-		// 	});
-		// }).then((user) => {
-		// 	console.log(user);
-		// });
 	}
 
 	/** Destructs the app. */
@@ -140,12 +78,57 @@ export class CedarDeskApp extends SimpleApp {
 		if (this._ws !== undefined) {
 			this._ws.close();
 		}
-		super.destroy();
 	}
 
 	/** Gets the websocket. */
 	get ws(): WS {
 		return this._ws;
+	}
+
+	/** Shows a message to the user. */
+	protected showMessage(messageHtml: string): void {
+		this.setHtml(this.element('message', Element), messageHtml);
+	}
+
+	/** Gets the page element. */
+	protected getPageElement(): HTMLElement {
+		return this.element('page', HTMLElement);
+	}
+
+	/** Sets the title HTML. */
+	setTitleHTML(html: string): void {
+		const titleElem = this.element('title', HTMLSpanElement).querySelector('a')!;
+		titleElem.innerHTML = html;
+	}
+
+	/** Sets the menu HTML. */
+	setMenu(html: string): void {
+		this.insertHtml(this.element('menu', HTMLSpanElement), null, html);
+	}
+
+	/** Sets the message HTML. */
+	setMessage(message: string): void {
+		const messageElem = this.element('message', HTMLDivElement);
+		if (message !== '') {
+			console.log(message);
+			messageElem.innerHTML = message;
+			messageElem.classList.add('active');
+		}
+		else {
+			messageElem.innerHTML = '';
+			messageElem.classList.remove('active');
+		}
+	}
+
+	/** Goes to the login page. Keeps the previous page. */
+	private _goToLoginPage(): void {
+		Cookies.set('user', '', 0);
+		Cookies.set('session', '', 0);
+		const prevPage = this.router.getValue('page');
+		this.router.replaceQuery({
+			page: 'login',
+			prevPage: prevPage !== undefined ? prevPage : ''
+		}, true);
 	}
 
 	private _logout(): void {
@@ -161,15 +144,15 @@ export class CedarDeskApp extends SimpleApp {
 	private _ws: WS = new WS();
 }
 
-// CedarDeskApp.html = /* html */`
-// 	<div id="header">
-// 		<icon src="icon.svg"></icon>
-// 		<span id="title"></span>
-// 	</div>
-// 	<div id="page"></div>
-// 	<div id="messages">message</div>
-// 	<div id="toolbar"></div>
-// 	`;
+CedarDeskApp.html = /* html */`
+	<div id="header">
+		<icon src="icon.svg"></icon>
+		<span id="title"></span>
+	</div>
+	<div id="page"></div>
+	<div id="message">message</div>
+	<div id="toolbar"></div>
+	`;
 
 CedarDeskApp.css = /* css */`
 	:root {
@@ -177,6 +160,78 @@ CedarDeskApp.css = /* css */`
 		--border: #aabbff;
 		--fg: #000000;
 		font-size: 2rem;
+	}
+	body {
+		margin: 0;
+		width: 100%;
+		min-height: 100vh;
+		display: grid;
+		grid-template-rows: 2rem 1fr 2rem 2rem;
+		grid-template-areas: "header" "page" "message" "footer";
+	}
+	.SimpleApp#headerArea {
+		grid-area: header;
+		background: var(--bg);
+	}
+	.SimpleApp#headerArea #header {
+		padding: 0.5rem;
+	}
+	.SimpleApp#headerArea #title a {
+		color: inherit;
+		text-decoration: none;
+		cursor: pointer;
+	}
+	.SimpleApp#headerArea #title a:hover {
+		text-decoration: underline;
+	}
+	.SimpleApp#headerArea #menu {
+		float: right;
+	}
+	.SimpleApp#page {
+		grid-area: page;
+		position: relative;
+		padding: .5rem;
+	}
+	.SimpleApp#page.fadeOut {
+		opacity: 0;
+		transition: opacity .125s;
+	}
+	.SimpleApp#page.fadeIn {
+		opacity: 1;
+		transition: opacity .125s;
+	}
+	.SimpleApp#messageArea {
+		grid-area: message;
+		background: var(--bg);
+	}
+	.SimpleApp#messageArea #message {
+		padding: 0 .5rem;
+		height: 0;
+		opacity: 0;
+		transition: opacity .5s, height .5s, margin .5s;
+		font-size: 1rem;
+	}
+	.SimpleApp#messageArea #message.active {
+		height: inherit;
+		opacity: 100%;
+		padding: .5rem;
+	}
+	.SimpleApp#messageArea #message a {
+		color: inherit;
+		text-decoration: none;
+	}
+	.SimpleApp#footerArea {
+		grid-area: footer;
+		background: var(--bg);
+	}
+	.SimpleApp#footerArea #footer {
+		padding: 0 .5rem;
+	}
+	.pageWidth {
+		margin: 0 auto;
+		width: 100%;
+		min-width: 10rem;
+		max-width: 25rem;
 	}
 
 	body {
