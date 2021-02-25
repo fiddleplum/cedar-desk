@@ -1,13 +1,12 @@
 import { SimpleApp, Component, Cookies } from 'elm-app';
+import { Page } from 'page';
 
-export class MainPage extends SimpleApp.Page {
-	constructor(params: Component.Params) {
-		super(params);
-
-	}
+export class MainPage extends Page {
 }
 
 MainPage.html = /* html */`
+	<div>
+	</div>
 	`;
 
 MainPage.css = /* css */`

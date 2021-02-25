@@ -1,17 +1,12 @@
-import { CedarDeskApp } from 'app';
-import { SimpleApp, Component, Cookies } from 'elm-app';
+import { Page } from 'page';
+import { Cookies } from 'elm-app';
 
-export class LoginPage extends SimpleApp.Page {
-	constructor(params: Component.Params) {
-		super(params);
-
-	}
-
+export class LoginPage extends Page {
 	private _login(): void {
 		const user = this.element('user', HTMLInputElement).value;
 		const password = this.element('password', HTMLInputElement).value;
 
-		(this.app as CedarDeskApp).ws.send({
+		this.app.ws.send({
 			command: 'login',
 			user,
 			password
@@ -28,19 +23,21 @@ export class LoginPage extends SimpleApp.Page {
 				location.reload();
 			}
 			else {
-				this.app.setMessage('Server error, please try again.');
+				this.app.setStatus('error', 'Server error, please try again.');
 			}
 		}).catch(() => {
-			this.app.setMessage('Invalid username or password.');
+			this.app.setStatus('error', 'Invalid username or password.');
 		});
 	}
 }
 
 LoginPage.html = /* html */`
-	<p>Welcome! Please login.</p>
-	<p><label for="username">Username:</label><input id="user" name="user" type="text"></input></p>
-	<p><label for="password">Password:</label><input id="password" name="password" type="password"></input></p>
-	<p><button id="submit" onclick="{$_login$}">Login</button></p>
+	<div>
+		<p>Welcome! Please login.</p>
+		<p><label for="username">Username:</label><input id="user" name="user" type="text"></input></p>
+		<p><label for="password">Password:</label><input id="password" name="password" type="password"></input></p>
+		<p><button id="submit" onclick="_login">Login</button></p>
+	</div>
 	`;
 
 LoginPage.css = /* css */`

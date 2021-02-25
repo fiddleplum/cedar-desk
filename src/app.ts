@@ -1,4 +1,5 @@
-import { SimpleApp, Cookies, WS, download } from 'elm-app';
+import { SimpleApp, Cookies, WS, download, Icon } from 'elm-app';
+import { Page } from 'page';
 import { LoginPage } from 'pages/login_page';
 import { MainPage } from 'pages/main_page';
 
@@ -7,10 +8,6 @@ export class CedarDeskApp extends SimpleApp {
 	constructor() {
 		super();
 
-		this.initialize();
-	}
-
-	private async initialize(): Promise<void> {
 		// Set the title.
 		this.setTitleHTML('Cedar Desk');
 
@@ -18,9 +15,14 @@ export class CedarDeskApp extends SimpleApp {
 		this.registerPage('', MainPage);
 		this.registerPage('login', LoginPage);
 
+		// Initialize everything else.
+		this.initialize();
+	}
+
+	async initialize(): Promise<void> {
 		// Load the config.
 		try {
-			this.setMessage('Loading Configuration');
+			this.setStatus('waiting', 'Loading Configuration');
 			const configJSON = await download('config.json', 'json');
 			if (configJSON !== null && typeof configJSON === 'object' && !Array.isArray(configJSON)) {
 				let key: keyof typeof configJSON;
@@ -35,17 +37,17 @@ export class CedarDeskApp extends SimpleApp {
 		catch { /* do nothing. */ }
 
 		// Connect to the web server.
-		this.setMessage('Connecting to Server');
+		this.setStatus('waiting', 'Connecting to Server');
 		const serverURL = this._config.get('serverURL');
 		if (typeof serverURL !== 'string' || serverURL === '') {
-			this.setMessage('The config.json must have a "serverURL" attribute where the web socket can connect to.');
+			this.setStatus('error', 'The config.json must have a "serverURL" attribute where the web socket can connect to.');
 			return;
 		}
 		try {
 			await this._ws.connect(serverURL);
 		}
 		catch {
-			this.setMessage('Could not connect to server.');
+			this.setStatus('error', 'Could not connect to server.');
 			return;
 		}
 
@@ -54,7 +56,7 @@ export class CedarDeskApp extends SimpleApp {
 		const session = Cookies.get('session');
 		// If so, try to authenticate with the server.
 		if (user !== undefined && session !== undefined) {
-			this.setMessage('Logging In');
+			this.setStatus('waiting', 'Logging In');
 			try {
 				await this._ws.send({
 					command: 'authenticate',
@@ -85,19 +87,19 @@ export class CedarDeskApp extends SimpleApp {
 		return this._ws;
 	}
 
-	/** Shows a message to the user. */
-	protected showMessage(messageHtml: string): void {
-		this.setHtml(this.element('message', Element), messageHtml);
-	}
-
 	/** Gets the page element. */
 	protected getPageElement(): HTMLElement {
 		return this.element('page', HTMLElement);
 	}
 
+	/** Callback when a new page is shown. */
+	protected onNewPage(page: SimpleApp.Page): void {
+		(page as Page).setApp(this);
+	}
+
 	/** Sets the title HTML. */
 	setTitleHTML(html: string): void {
-		const titleElem = this.element('title', HTMLSpanElement).querySelector('a')!;
+		const titleElem = this.element('title', HTMLSpanElement);
 		titleElem.innerHTML = html;
 	}
 
@@ -106,19 +108,25 @@ export class CedarDeskApp extends SimpleApp {
 		this.insertHtml(this.element('menu', HTMLSpanElement), null, html);
 	}
 
-	/** Sets the message HTML. */
-	setMessage(message: string): void {
-		const messageElem = this.element('message', HTMLDivElement);
-		if (message !== '') {
-			console.log(message);
-			messageElem.innerHTML = message;
-			messageElem.classList.add('active');
-		}
-		else {
-			messageElem.innerHTML = '';
-			messageElem.classList.remove('active');
-		}
+	/** Sets the status icon. */
+	setStatus(name: string, _message: string): void {
+		const statusIcon = this.component('status', Icon);
+		statusIcon.src = `assets/icons/${name}.svg`;
 	}
+
+	// /** Sets the message HTML. */
+	// showMessage(message: string): void {
+	// 	const messageElem = this.element('message', HTMLDivElement);
+	// 	if (message !== '') {
+	// 		console.log(message);
+	// 		messageElem.innerHTML = message;
+	// 		messageElem.classList.add('active');
+	// 	}
+	// 	else {
+	// 		messageElem.innerHTML = '';
+	// 		messageElem.classList.remove('active');
+	// 	}
+	// }
 
 	/** Goes to the login page. Keeps the previous page. */
 	private _goToLoginPage(): void {
@@ -145,16 +153,27 @@ export class CedarDeskApp extends SimpleApp {
 }
 
 CedarDeskApp.html = /* html */`
-	<div id="header">
-		<icon src="icon.svg"></icon>
-		<span id="title"></span>
-	</div>
-	<div id="page"></div>
-	<div id="message">message</div>
-	<div id="toolbar"></div>
+	<body>
+		<div id="header">
+			<icon id="logo" src="assets/icons/logo.svg"></icon>
+			<span id="title"></span>
+			<icon id="status"></icon>
+		</div>
+		<div id="page"></div>
+		<div id="toolbar"></div>
+	</body>
 	`;
 
 CedarDeskApp.css = /* css */`
+	.AbstractButton {
+		display: block;
+		border: 1px solid black;
+		background: grey;
+	}
+	.AbstractButton.pressed {
+		background: yellow;
+	}
+
 	:root {
 		--bg: #ccddff;
 		--border: #aabbff;
@@ -199,26 +218,6 @@ CedarDeskApp.css = /* css */`
 	.SimpleApp#page.fadeIn {
 		opacity: 1;
 		transition: opacity .125s;
-	}
-	.SimpleApp#messageArea {
-		grid-area: message;
-		background: var(--bg);
-	}
-	.SimpleApp#messageArea #message {
-		padding: 0 .5rem;
-		height: 0;
-		opacity: 0;
-		transition: opacity .5s, height .5s, margin .5s;
-		font-size: 1rem;
-	}
-	.SimpleApp#messageArea #message.active {
-		height: inherit;
-		opacity: 100%;
-		padding: .5rem;
-	}
-	.SimpleApp#messageArea #message a {
-		color: inherit;
-		text-decoration: none;
 	}
 	.SimpleApp#footerArea {
 		grid-area: footer;
