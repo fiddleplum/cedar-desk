@@ -22,7 +22,7 @@ export class CedarDeskApp extends SimpleApp {
 	async initialize(): Promise<void> {
 		// Load the config.
 		try {
-			this.setStatus('waiting', 'Loading Configuration');
+			this.setStatus('waiting', 'Loading configuration.');
 			const configJSON = await download('config.json', 'json');
 			if (configJSON !== null && typeof configJSON === 'object' && !Array.isArray(configJSON)) {
 				let key: keyof typeof configJSON;
@@ -33,11 +33,12 @@ export class CedarDeskApp extends SimpleApp {
 					}
 				}
 			}
+			this.setStatus('ready', 'Loaded configuration.');
 		}
 		catch { /* do nothing. */ }
 
 		// Connect to the web server.
-		this.setStatus('waiting', 'Connecting to Server');
+		this.setStatus('waiting', 'Connecting to server.');
 		const serverURL = this._config.get('serverURL');
 		if (typeof serverURL !== 'string' || serverURL === '') {
 			this.setStatus('error', 'The config.json must have a "serverURL" attribute where the web socket can connect to.');
@@ -45,6 +46,7 @@ export class CedarDeskApp extends SimpleApp {
 		}
 		try {
 			await this._ws.connect(serverURL);
+			this.setStatus('ready', 'Connected to server.');
 		}
 		catch {
 			this.setStatus('error', 'Could not connect to server.');
@@ -62,13 +64,16 @@ export class CedarDeskApp extends SimpleApp {
 					command: 'authenticate',
 					user,
 					session });
-				this.setMenu('<button onclick="{$_logout$}">Log Out</button>');
+				this.setStatus('ready', 'Logged in.');
+				// this.setMenu('<button onclick="{$_logout$}">Log Out</button>');
 			}
 			catch {
+				this.setStatus('error', 'Error logging in.');
 				this._goToLoginPage();
 			}
 		}
 		else {
+			this.setStatus('ready', 'No authentication, going to login page.');
 			this._goToLoginPage();
 		}
 
@@ -109,24 +114,11 @@ export class CedarDeskApp extends SimpleApp {
 	}
 
 	/** Sets the status icon. */
-	setStatus(name: string, _message: string): void {
+	setStatus(name: string, message: string): void {
+		console.log(`Status: ${message}`);
 		const statusIcon = this.component('status', Icon);
 		statusIcon.src = `assets/icons/${name}.svg`;
 	}
-
-	// /** Sets the message HTML. */
-	// showMessage(message: string): void {
-	// 	const messageElem = this.element('message', HTMLDivElement);
-	// 	if (message !== '') {
-	// 		console.log(message);
-	// 		messageElem.innerHTML = message;
-	// 		messageElem.classList.add('active');
-	// 	}
-	// 	else {
-	// 		messageElem.innerHTML = '';
-	// 		messageElem.classList.remove('active');
-	// 	}
-	// }
 
 	/** Goes to the login page. Keeps the previous page. */
 	private _goToLoginPage(): void {
@@ -165,93 +157,67 @@ CedarDeskApp.html = /* html */`
 	`;
 
 CedarDeskApp.css = /* css */`
-	.AbstractButton {
-		display: block;
-		border: 1px solid black;
-		background: grey;
-	}
-	.AbstractButton.pressed {
-		background: yellow;
-	}
-
 	:root {
 		--bg: #ccddff;
 		--border: #aabbff;
 		--fg: #000000;
-		font-size: 2rem;
+		font-size: 12px;
 	}
-	body {
+	.SimpleApp {
 		margin: 0;
 		width: 100%;
 		min-height: 100vh;
 		display: grid;
-		grid-template-rows: 2rem 1fr 2rem 2rem;
-		grid-template-areas: "header" "page" "message" "footer";
+		grid-template-rows: 6rem 1fr 6rem;
+		grid-template-areas: "header" "page" "toolbar";
 	}
-	.SimpleApp#headerArea {
+	.SimpleApp #header {
 		grid-area: header;
 		background: var(--bg);
+		display: grid;
+		grid-template-columns: 6rem 1fr 6rem;
+		grid-template-areas: "logo" "title" "status";
 	}
-	.SimpleApp#headerArea #header {
-		padding: 0.5rem;
+	.SimpleApp #header #logo {
+		margin: 1rem;
 	}
-	.SimpleApp#headerArea #title a {
-		color: inherit;
-		text-decoration: none;
-		cursor: pointer;
+	.SimpleApp #header #title {
+		font-size: 3rem;
+		line-height: 6rem;
+		text-align: center;
 	}
-	.SimpleApp#headerArea #title a:hover {
-		text-decoration: underline;
+	.SimpleApp #header #status {
+		margin: 1rem;
 	}
-	.SimpleApp#headerArea #menu {
-		float: right;
+	.SimpleApp #toolbar {
+		grid-area: toolbar;
+		background: var(--bg);
+		padding: 0 .5rem;
 	}
-	.SimpleApp#page {
+	.SimpleApp #page {
 		grid-area: page;
 		position: relative;
 		padding: .5rem;
 	}
-	.SimpleApp#page.fadeOut {
+	.SimpleApp #page.fadeOut {
 		opacity: 0;
 		transition: opacity .125s;
 	}
-	.SimpleApp#page.fadeIn {
+	.SimpleApp #page.fadeIn {
 		opacity: 1;
 		transition: opacity .125s;
 	}
-	.SimpleApp#footerArea {
-		grid-area: footer;
-		background: var(--bg);
-	}
-	.SimpleApp#footerArea #footer {
-		padding: 0 .5rem;
-	}
-	.pageWidth {
-		margin: 0 auto;
-		width: 100%;
-		min-width: 10rem;
-		max-width: 25rem;
-	}
-
-	body {
-		font-size: 1rem;
-		line-height: 1rem;
-	}
-
 	#page p:first-child {
 		margin-top: 0;
 	}
-
 	#page p {
 		margin: 1rem 0 0 0;
 		max-width: 100%;
 	}
-
 	#page label {
 		display: inline-block;
 		height: 1rem;
 	}
-
 	#page button, input {
 		display: inline-block;
 		border: 0;
@@ -265,59 +231,20 @@ CedarDeskApp.css = /* css */`
 		line-height: 1.5rem;
 		height: 2rem;
 	}
-
 	#page input:focus {
 		box-shadow: 0 0 .125em .125em var(--border);
 	}
-	
-
-	// body {
-	// 	margin: 0;
-	// 	height: 100%;
-	// 	background: white;
-	// 	color: black;
-	// 	display: grid;
-	// 	grid-template-rows: calc(2.5rem + 1px) 1fr calc(2.5rem + 1px);
-	// 	grid-template-areas: 
-	// 		"header"
-	// 		"page"
-	// 		"footer"
-	// }
-
-	// .CedarDeskApp#header {
-	// 	grid-area: header;
-	// 	background: var(--bg);
-	// 	border-bottom: 1px solid var(--border);
-	// 	padding: .25rem;
-	// }
-
-	// .CedarDeskApp#header svg {
-	// 	width: auto;
-	// 	height: calc(100%);
-	// }
-
-	// .CedarDeskApp #title {
-	// 	vertical-align: baseline;
-	// 	display: inline-block;
-	// 	padding-left: .25rem;
-	// 	font-size: 2rem;
-	// 	line-height: 2rem;
-	// }
-
-	// .CedarDeskApp#page {
-	// 	grid-area: page;
-	// }
-
-	// .CedarDeskApp#messages {
-	// 	grid-area: page;
-	// 	max-height: 1.5rem;
-	// }
-
-	// .CedarDeskApp#toolbar {
-	// 	grid-area: footer;
-	// 	background: var(--bg);
-	// 	border-top: 1px solid var(--border);
-	// }
+	.pageWidth {
+		margin: 0 auto;
+		width: 100%;
+		min-width: 10rem;
+		max-width: 25rem;
+	}
+	.Icon {
+		width: 4rem;
+		height: 4rem;
+		fill: green;
+	}
 	`;
 
 CedarDeskApp.setAppClass();
