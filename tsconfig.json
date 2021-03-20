@@ -10,6 +10,7 @@
 		"sourceMap": true,
 		"baseUrl": "src",
 		"paths": {
+			"pine-lib": [ "../../pine-lib/src/index" ],
 			"elm-app": [ "../../elm-app/src/index" ]
 		}
 	},

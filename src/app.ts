@@ -1,7 +1,9 @@
-import { SimpleApp, Cookies, WS, download, Icon } from 'elm-app';
+import { download } from 'pine-lib';
+import { SimpleApp, Cookies, WS, Icon } from 'elm-app';
 import { Page } from 'page';
-import { LoginPage } from 'pages/login_page';
 import { MainPage } from 'pages/main_page';
+import { LoginPage } from 'pages/login_page';
+import { TasksPage } from 'pages/tasks_page';
 
 export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
@@ -14,6 +16,7 @@ export class CedarDeskApp extends SimpleApp {
 		// Register all of the pages.
 		this.registerPage('', MainPage);
 		this.registerPage('login', LoginPage);
+		this.registerPage('tasks', TasksPage);
 
 		// Initialize everything else.
 		this.initialize();
@@ -99,7 +102,9 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** Callback when a new page is shown. */
 	protected onNewPage(page: SimpleApp.Page): void {
+		console.log(`Opening page ${page.constructor.name}.`);
 		(page as Page).setApp(this);
+		(page as Page).initialize();
 	}
 
 	/** Sets the title HTML. */

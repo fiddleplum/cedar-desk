@@ -12,6 +12,11 @@ export class Page extends SimpleApp.Page {
 		this._app = cedarDeskApp;
 	}
 
+	/** Called after the page has been constructed. */
+	initialize(): Promise<void> {
+		return Promise.resolve();
+	}
+
 	/** The CedarApp. */
 	private _app: CedarDeskApp | undefined;
 }
