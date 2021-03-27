@@ -3,15 +3,25 @@ import { Cookies } from 'elm-app';
 
 export class LoginPage extends Page {
 	private _login(): void {
+		// Clear the message and disable the login button.
+		this.showMessage('');
+		this.element('submit', HTMLButtonElement).disabled = true;
+
+		// Get the inputs.
 		const user = this.element('user', HTMLInputElement).value;
 		const password = this.element('password', HTMLInputElement).value;
 
+		// Send the login command.
 		this.app.ws.send({
+			module: 'users',
 			command: 'login',
-			user,
-			password
-		}).then((response) => {
-			const session = response.session;
+			params: {
+				user,
+				password
+			}
+		}).then((session) => {
+			console.log(session);
+			// Record the session in cookies.
 			if (typeof session === 'string') {
 				Cookies.set('user', user, 3600 * 24 * 7);
 				Cookies.set('session', session, 3600 * 24 * 7);
@@ -23,11 +33,18 @@ export class LoginPage extends Page {
 				location.reload();
 			}
 			else {
-				this.app.setStatus('error', 'Server error, please try again.');
+				this.element('submit', HTMLButtonElement).disabled = false;
+				this.showMessage('Server error, please try again.');
 			}
 		}).catch(() => {
-			this.app.setStatus('error', 'Invalid username or password.');
+			this.element('submit', HTMLButtonElement).disabled = false;
+			this.showMessage('Invalid username or password.');
 		});
+	}
+
+	/** Shows a message below the form. */
+	showMessage(message: string): void {
+		this.element('message', HTMLParagraphElement).innerHTML = message;
 	}
 }
 
@@ -37,29 +54,31 @@ LoginPage.html = /* html */`
 		<p><label for="username">Username:</label><input id="user" name="user" type="text"></input></p>
 		<p><label for="password">Password:</label><input id="password" name="password" type="password"></input></p>
 		<p><button id="submit" onclick="_login">Login</button></p>
+		<p id="message"></p>
 	</div>
 	`;
 
 LoginPage.css = /* css */`
+	.LoginPage {
+		width: 100%;
+		max-width: 15rem;
+		margin: 0 auto;
+	}
 	.LoginPage label {
 		width: 5rem;
 	}
 	.LoginPage input {
-		width: 6rem;
+		width: calc(100% - 5rem);
 	}
-	.LoginPage button {
-		width: 11rem;
+	.LoginPage #submit {
+		width: 100%;
 	}
-	@media only screen and (max-width: 25rem) {
-		.LoginPage label {
-			width: 50%;
-		}
-		.LoginPage input {
-			width: 50%;
-		}
-		.LoginPage button {
-			width: 100%;
-		}
+	.LoginPage #message:empty {
+		opacity: 0;
+	}
+	.LoginPage #message {
+		opacity: 1;
+		transition: opacity .125s;
 	}
 	`;
 

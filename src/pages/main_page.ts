@@ -2,6 +2,11 @@ import { Page } from 'page';
 import { Component } from 'elm-app';
 
 export class MainPage extends Page {
+	async initialize(): Promise<void> {
+		// Set the title.
+		this.app.setTitleHTML('Sun Alarm');
+	}
+
 	private _goToApp(component: Component): void {
 		this.app.router.pushQuery({
 			page: component.id
@@ -12,6 +17,7 @@ export class MainPage extends Page {
 MainPage.html = /* html */`
 	<div>
 		<PushButton id="tasks" onpress="_goToApp">Tasks</PushButton>
+		<PushButton id="sun_alarm" onpress="_goToApp">Sun Alarm</PushButton>
 	</div>
 	`;
 

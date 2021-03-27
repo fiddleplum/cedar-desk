@@ -1,5 +1,33 @@
 {
 	"tables": {
+		"sun_alarms/<user>": {
+			"index-of-id": 0,
+			"fields": [{
+				"name": "id",
+				"type": "number"
+			}, {
+				"name": "lon",
+				"type": "number"
+			}, {
+				"name": "lat",
+				"type": "number"
+			}, {
+				"name": "type",
+				"type": "string"
+			}, {
+				"name": "offset",
+				"type": "number"
+			}, {
+				"name": "sound",
+				"type": "string"
+			}, {
+				"name": "days-of-week",
+				"type": "number array"
+			}],
+			"permissions": {
+				"edit": ["<user>"]
+			}
+		},
 		"tasks": {
 			"index-of-id": 0,
 			"fields": [{

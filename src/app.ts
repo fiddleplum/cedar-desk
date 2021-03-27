@@ -4,6 +4,7 @@ import { Page } from 'page';
 import { MainPage } from 'pages/main_page';
 import { LoginPage } from 'pages/login_page';
 import { TasksPage } from 'pages/tasks_page';
+import { SunAlarmPage } from 'pages/sun_alarm_page';
 
 export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
@@ -17,6 +18,7 @@ export class CedarDeskApp extends SimpleApp {
 		this.registerPage('', MainPage);
 		this.registerPage('login', LoginPage);
 		this.registerPage('tasks', TasksPage);
+		this.registerPage('sun_alarm', SunAlarmPage);
 
 		// Initialize everything else.
 		this.initialize();
@@ -64,9 +66,12 @@ export class CedarDeskApp extends SimpleApp {
 			this.setStatus('waiting', 'Logging In');
 			try {
 				await this._ws.send({
+					module: 'users',
 					command: 'authenticate',
-					user,
-					session });
+					params: {
+						user,
+						session
+					}});
 				this.setStatus('ready', 'Logged in.');
 				// this.setMenu('<button onclick="{$_logout$}">Log Out</button>');
 			}
@@ -164,40 +169,41 @@ CedarDeskApp.html = /* html */`
 CedarDeskApp.css = /* css */`
 	:root {
 		--bg: #ccddff;
+		--bg-light: #ddeeff;
 		--border: #aabbff;
 		--fg: #000000;
-		font-size: 12px;
+		font-size: 24px;
 	}
 	.SimpleApp {
 		margin: 0;
 		width: 100%;
 		min-height: 100vh;
 		display: grid;
-		grid-template-rows: 6rem 1fr 6rem;
+		grid-template-rows: 3rem 1fr 3rem;
 		grid-template-areas: "header" "page" "toolbar";
 	}
 	.SimpleApp #header {
 		grid-area: header;
 		background: var(--bg);
 		display: grid;
-		grid-template-columns: 6rem 1fr 6rem;
+		grid-template-columns: 3rem 1fr 3rem;
 		grid-template-areas: "logo" "title" "status";
 	}
 	.SimpleApp #header #logo {
-		margin: 1rem;
+		margin: .5rem;
 	}
 	.SimpleApp #header #title {
-		font-size: 3rem;
-		line-height: 6rem;
+		font-size: 1.5rem;
+		line-height: 3rem;
 		text-align: center;
 	}
 	.SimpleApp #header #status {
-		margin: 1rem;
+		margin: .5rem;
 	}
 	.SimpleApp #toolbar {
 		grid-area: toolbar;
 		background: var(--bg);
-		padding: 0 .5rem;
+		padding: 0 .25rem;
 	}
 	.SimpleApp #page {
 		grid-area: page;
@@ -216,38 +222,42 @@ CedarDeskApp.css = /* css */`
 		margin-top: 0;
 	}
 	#page p {
-		margin: 1rem 0 0 0;
+		margin: .5rem 0 0 0;
 		max-width: 100%;
 	}
 	#page label {
 		display: inline-block;
-		height: 1rem;
+		height: .5rem;
 	}
 	#page button, input {
 		display: inline-block;
 		border: 0;
-		border-radius: .25rem;
+		border-radius: .125rem;
 		outline: 0;
-		padding: .25rem .5rem;
+		padding: .125rem .25rem;
 		max-width: 100%;
 		background: var(--bg);
 		color: var(--fg);
 		font-size: inherit;
-		line-height: 1.5rem;
+		line-height: 0.75rem;
 		height: 2rem;
 	}
+	#page button:disabled, input:disabled {
+		background: var(--bg-light);
+		color: var(--bg);
+	}
 	#page input:focus {
-		box-shadow: 0 0 .125em .125em var(--border);
+		box-shadow: 0 0 .0625em .0625em var(--border);
 	}
 	.pageWidth {
 		margin: 0 auto;
 		width: 100%;
-		min-width: 10rem;
-		max-width: 25rem;
+		min-width: 5rem;
+		max-width: 12.5rem;
 	}
 	.Icon {
-		width: 4rem;
-		height: 4rem;
+		width: 2rem;
+		height: 2rem;
 		fill: green;
 	}
 	`;
