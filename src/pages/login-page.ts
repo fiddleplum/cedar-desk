@@ -50,8 +50,8 @@ export class LoginPage extends Page {
 LoginPage.html = /* html */`
 	<div>
 		<h1>Please Login</h1>
-		<p><label for="username">Username:</label><input id="user" name="user" type="text"></input></p>
-		<p><label for="password">Password:</label><input id="password" name="password" type="password"></input></p>
+		<p><label for="username">Username:</label><input id="user" type="text"></input></p>
+		<p><label for="password">Password:</label><input id="password" type="password"></input></p>
 		<p><button id="submit" onclick="_login">Login</button></p>
 		<p id="message"></p>
 	</div>

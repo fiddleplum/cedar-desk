@@ -6,6 +6,7 @@ import { MainPage } from 'pages/main-page';
 import { LoginPage } from 'pages/login-page';
 import { TasksPage } from 'pages/tasks-page';
 import { SunAlarmPage } from 'pages/sun-alarm-page';
+import { AdminPage } from 'pages/admin-page';
 
 export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
@@ -17,6 +18,7 @@ export class CedarDeskApp extends SimpleApp {
 
 		// Register all of the pages.
 		this.registerPage('', MainPage);
+		this.registerPage('admin', AdminPage);
 		this.registerPage('account', UserSettingsPage);
 		this.registerPage('login', LoginPage);
 		this.registerPage('tasks', TasksPage);
@@ -83,6 +85,14 @@ export class CedarDeskApp extends SimpleApp {
 				}
 				// Show the menu button.
 				this.element('menu-button', HTMLButtonElement).classList.remove('hidden');
+
+				const groups = await this._ws.send({
+					module: 'users',
+					command: 'getGroups'
+				}) as string[];
+				if (groups.includes('admins')) {
+					this.insertHtml(this.element('menu', HTMLElement), this.element('logout', HTMLElement), `<button id="admin" onclick="_goToPage">Admin</button>`);
+				}
 			}
 			catch {
 				this.setStatus('error', 'Error logging in.');
@@ -184,7 +194,7 @@ CedarDeskApp.html = /* html */`
 			<button id="menu-button" class="hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg"></icon></button>
 			<div id="menu" class="hidden">
 				<button id="account" onclick="_goToPage">User Settings</button>
-				<button id="log-out" onclick="_logout">Log Out</button>
+				<button id="logout" onclick="_logout">Log Out</button>
 			</div>
 		</div>
 		<div id="page"></div>
