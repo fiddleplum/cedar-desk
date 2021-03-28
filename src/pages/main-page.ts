@@ -4,7 +4,7 @@ import { Component } from 'elm-app';
 export class MainPage extends Page {
 	async initialize(): Promise<void> {
 		// Set the title.
-		this.app.setTitleHTML('Sun Alarm');
+		this.app.setTitleHTML('Cedar Desk');
 	}
 
 	private _goToApp(component: Component): void {

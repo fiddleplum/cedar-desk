@@ -1,10 +1,11 @@
 import { download } from 'pine-lib';
 import { SimpleApp, Cookies, WS, Icon } from 'elm-app';
 import { Page } from 'page';
-import { MainPage } from 'pages/main_page';
-import { LoginPage } from 'pages/login_page';
-import { TasksPage } from 'pages/tasks_page';
-import { SunAlarmPage } from 'pages/sun_alarm_page';
+import { UserSettingsPage } from 'pages/user-page';
+import { MainPage } from 'pages/main-page';
+import { LoginPage } from 'pages/login-page';
+import { TasksPage } from 'pages/tasks-page';
+import { SunAlarmPage } from 'pages/sun-alarm-page';
 
 export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
@@ -16,9 +17,10 @@ export class CedarDeskApp extends SimpleApp {
 
 		// Register all of the pages.
 		this.registerPage('', MainPage);
+		this.registerPage('account', UserSettingsPage);
 		this.registerPage('login', LoginPage);
 		this.registerPage('tasks', TasksPage);
-		this.registerPage('sun_alarm', SunAlarmPage);
+		this.registerPage('sun-alarm', SunAlarmPage);
 
 		// Initialize everything else.
 		this.initialize();
@@ -73,7 +75,14 @@ export class CedarDeskApp extends SimpleApp {
 						session
 					}});
 				this.setStatus('ready', 'Logged in.');
-				// this.setMenu('<button onclick="{$_logout$}">Log Out</button>');
+				// If we were at the login page, go to the main page.
+				if (this.router.getValue('page') === 'login') {
+					this.router.replaceQuery({
+						page: ''
+					}, true);
+				}
+				// Show the menu button.
+				this.element('menu-button', HTMLButtonElement).classList.remove('hidden');
 			}
 			catch {
 				this.setStatus('error', 'Error logging in.');
@@ -126,8 +135,17 @@ export class CedarDeskApp extends SimpleApp {
 	/** Sets the status icon. */
 	setStatus(name: string, message: string): void {
 		console.log(`Status: ${message}`);
-		const statusIcon = this.component('status', Icon);
-		statusIcon.src = `assets/icons/${name}.svg`;
+		// const statusIcon = this.component('status', Icon);
+		// statusIcon.src = `assets/icons/${name}.svg`;
+	}
+
+	private _goToPage(event: Event): void {
+		if (event.target !== null) {
+			this.element('menu', HTMLDivElement).classList.add('hidden');
+			this.router.pushQuery({
+				page: (event.target as HTMLButtonElement).id
+			}, true);
+		}
 	}
 
 	/** Goes to the login page. Keeps the previous page. */
@@ -147,6 +165,10 @@ export class CedarDeskApp extends SimpleApp {
 		location.reload();
 	}
 
+	private _openMenu(): void {
+		this.element('menu', HTMLDivElement).classList.toggle('hidden');
+	}
+
 	/** The config. */
 	private _config: Map<string, string | number | boolean> = new Map();
 
@@ -157,9 +179,13 @@ export class CedarDeskApp extends SimpleApp {
 CedarDeskApp.html = /* html */`
 	<body>
 		<div id="header">
-			<icon id="logo" src="assets/icons/logo.svg"></icon>
+			<button id="logo" id="apps-button"><icon src="assets/icons/logo.svg"></icon></button>
 			<span id="title"></span>
-			<icon id="status"></icon>
+			<button id="menu-button" class="hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg"></icon></button>
+			<div id="menu" class="hidden">
+				<button id="account" onclick="_goToPage">User Settings</button>
+				<button id="log-out" onclick="_logout">Log Out</button>
+			</div>
 		</div>
 		<div id="page"></div>
 		<div id="toolbar"></div>
@@ -168,11 +194,19 @@ CedarDeskApp.html = /* html */`
 
 CedarDeskApp.css = /* css */`
 	:root {
-		--bg: #ccddff;
-		--bg-light: #ddeeff;
-		--border: #aabbff;
-		--fg: #000000;
+		--color1: #134D39;
+		--color2: #1C7153;
+		--color3: #25946E;
+		--color4: #2EB888;
+		--color5: #37DCA2;
+		--color6: #40FFBD;
 		font-size: 24px;
+		line-height: 36px;
+	}
+	* {
+		transition-property: transform, padding, opacity, background, color, fill;
+		transition-duration: .25s;
+		transition-timing-function: ease-out;
 	}
 	.SimpleApp {
 		margin: 0;
@@ -181,49 +215,96 @@ CedarDeskApp.css = /* css */`
 		display: grid;
 		grid-template-rows: 3rem 1fr 3rem;
 		grid-template-areas: "header" "page" "toolbar";
+		background: var(--color6);
 	}
 	.SimpleApp #header {
 		grid-area: header;
-		background: var(--bg);
+		position: relative;
 		display: grid;
-		grid-template-columns: 3rem 1fr 3rem;
+		grid-template-columns: 2.5rem 1fr 2.5rem;
 		grid-template-areas: "logo" "title" "status";
-	}
-	.SimpleApp #header #logo {
-		margin: .5rem;
+		padding: .25rem;
+		background: var(--color1);
+		color: var(--color4);
+		fill: var(--color4);
 	}
 	.SimpleApp #header #title {
 		font-size: 1.5rem;
-		line-height: 3rem;
+		line-height: 2.5rem;
 		text-align: center;
 	}
-	.SimpleApp #header #status {
-		margin: .5rem;
+	.SimpleApp #header button {
+		padding: .25rem;
+	}
+	.SimpleApp #header button:hover {
+		background: var(--color2);
+	}
+	.SimpleApp #header #menu-button {
+		transition: all .25s;
+	}
+	.SimpleApp #menu {
+		position: absolute;
+		width: 100%;
+		top: 3rem;
+		z-index: 1;
+		border-bottom-left-radius: .25rem;
+		padding: .25rem;
+		text-align: center;
+		background: var(--color2);
+		color: var(--color5);
+		fill: var(--color5);
+		font-size: 1.25rem;
+		line-height: 1.5rem;
+		transform-origin: 0 0;
+		overflow: hidden;
+	}
+	.SimpleApp #menu button {
+		display: block;
+		width: 100%;
+	}
+	.SimpleApp #menu button:hover {
+		background: var(--color3);
+		color: var(--color5);
+	}
+	.SimpleApp #menu.hidden {
+		background: var(--color1);
+		color: var(--color1);
 	}
 	.SimpleApp #toolbar {
 		grid-area: toolbar;
-		background: var(--bg);
-		padding: 0 .25rem;
+		background: var(--color1);
+		color: var(--color4);
+		fill: var(--color4);
+		padding: .25rem;
 	}
 	.SimpleApp #page {
 		grid-area: page;
 		position: relative;
+		background: var(--color6);
 		padding: .5rem;
+		color: var(--color1);
+		fill: var(--color1);
 	}
 	.SimpleApp #page.fadeOut {
 		opacity: 0;
-		transition: opacity .125s;
 	}
 	.SimpleApp #page.fadeIn {
 		opacity: 1;
-		transition: opacity .125s;
 	}
-	#page p:first-child {
-		margin-top: 0;
+	#page h1 {
+		font-size: 1.5rem;
+		margin: .5rem 0 0 0;
+	}
+	#page h2 {
+		font-size: 1.25rem;
+		margin: .25rem 0 0 0;
 	}
 	#page p {
 		margin: .5rem 0 0 0;
 		max-width: 100%;
+	}
+	#page h1:first-child, #page h2:first-child, #page p:first-child {
+		margin-top: 0;
 	}
 	#page label {
 		display: inline-block;
@@ -236,29 +317,35 @@ CedarDeskApp.css = /* css */`
 		outline: 0;
 		padding: .125rem .25rem;
 		max-width: 100%;
-		background: var(--bg);
-		color: var(--fg);
+		background: var(--color3);
+		color: var(--color1);
+		fill: var(--color1);
 		font-size: inherit;
 		line-height: 0.75rem;
 		height: 2rem;
 	}
 	#page button:disabled, input:disabled {
-		background: var(--bg-light);
-		color: var(--bg);
+		background: var(--color4);
+		color: var(--color3);
 	}
 	#page input:focus {
 		box-shadow: 0 0 .0625em .0625em var(--border);
 	}
-	.pageWidth {
-		margin: 0 auto;
-		width: 100%;
-		min-width: 5rem;
-		max-width: 12.5rem;
+	button {
+		border-radius: .25rem;
+		font-size: inherit;
+		line-height: inherit;
+		color: inherit;
+		background: transparent;
+		border: 0;
 	}
 	.Icon {
 		width: 2rem;
 		height: 2rem;
-		fill: green;
+	}
+	.hidden {
+		padding: 0rem;
+		transform: scaleY(0);
 	}
 	`;
 

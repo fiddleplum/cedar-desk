@@ -2,7 +2,7 @@ import { Page } from 'page';
 import { Cookies } from 'elm-app';
 
 export class LoginPage extends Page {
-	private _login(): void {
+	private async _login(): Promise<void> {
 		// Clear the message and disable the login button.
 		this.showMessage('');
 		this.element('submit', HTMLButtonElement).disabled = true;
@@ -12,34 +12,33 @@ export class LoginPage extends Page {
 		const password = this.element('password', HTMLInputElement).value;
 
 		// Send the login command.
-		this.app.ws.send({
-			module: 'users',
-			command: 'login',
-			params: {
-				user,
-				password
-			}
-		}).then((session) => {
-			console.log(session);
-			// Record the session in cookies.
-			if (typeof session === 'string') {
-				Cookies.set('user', user, 3600 * 24 * 7);
-				Cookies.set('session', session, 3600 * 24 * 7);
-				const prevPage = this.app.router.getValue('prevPage');
-				this.app.router.replaceQuery({
-					page: prevPage !== undefined ? prevPage : '',
-					prevPage: ''
-				}, true);
-				location.reload();
-			}
-			else {
-				this.element('submit', HTMLButtonElement).disabled = false;
-				this.showMessage('Server error, please try again.');
-			}
-		}).catch(() => {
-			this.element('submit', HTMLButtonElement).disabled = false;
-			this.showMessage('Invalid username or password.');
-		});
+		try {
+			// Try to login and get the session id.
+			const session = await this.app.ws.send({
+				module: 'users',
+				command: 'login',
+				params: {
+					user,
+					password
+				}
+			}) as string;
+
+			// Set the cookies.
+			Cookies.set('user', user, 3600 * 24 * 7);
+			Cookies.set('session', session, 3600 * 24 * 7);
+
+			// Update the route.
+			const prevPage = this.app.router.getValue('prevPage');
+			this.app.router.replaceQuery({
+				page: prevPage !== undefined ? prevPage : '',
+				prevPage: ''
+			}, true);
+			location.reload();
+		}
+		catch (error) {
+			this.showMessage((error as Error).message + '');
+		}
+		this.element('submit', HTMLButtonElement).disabled = false;
 	}
 
 	/** Shows a message below the form. */
@@ -50,7 +49,7 @@ export class LoginPage extends Page {
 
 LoginPage.html = /* html */`
 	<div>
-		<p>Welcome! Please login.</p>
+		<h1>Please Login</h1>
 		<p><label for="username">Username:</label><input id="user" name="user" type="text"></input></p>
 		<p><label for="password">Password:</label><input id="password" name="password" type="password"></input></p>
 		<p><button id="submit" onclick="_login">Login</button></p>
