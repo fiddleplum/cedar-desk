@@ -1,15 +1,20 @@
 import { Page } from 'page';
-import { Cookies } from 'elm-app';
+import { Cookies, ElmForm } from 'elm-app';
 
 export class LoginPage extends Page {
 	private async _login(): Promise<void> {
+		// Get the form.
+		const form = this.component('form', ElmForm);
+
 		// Clear the message and disable the login button.
-		this.showMessage('');
-		this.element('submit', HTMLButtonElement).disabled = true;
+		form.setMessage('');
+		form.setEnabled(false);
+
+		const values = form.getValues();
 
 		// Get the inputs.
-		const user = this.element('user', HTMLInputElement).value;
-		const password = this.element('password', HTMLInputElement).value;
+		const user = values.get('user') as string;
+		const password = values.get('password') as string;
 
 		// Send the login command.
 		try {
@@ -36,23 +41,20 @@ export class LoginPage extends Page {
 			location.reload();
 		}
 		catch (error) {
-			this.showMessage((error as Error).message + '');
+			form.setMessage((error as Error).message + '');
 		}
-		this.element('submit', HTMLButtonElement).disabled = false;
-	}
-
-	/** Shows a message below the form. */
-	showMessage(message: string): void {
-		this.element('message', HTMLParagraphElement).innerHTML = message;
+		form.setEnabled(true);
 	}
 }
 
 LoginPage.html = /* html */`
 	<div>
-		<h1>Please Login</h1>
-		<p><label for="username">Username:</label><input id="user" type="text"></input></p>
-		<p><label for="password">Password:</label><input id="password" type="password"></input></p>
-		<p><button id="submit" onclick="_login">Login</button></p>
+		<ElmForm id="form" labelWidth="5rem">
+			<h1>Please Login</h1>
+			<entry name="user" label="Username" type="text"></entry>
+			<entry name="password" label="Password" type="password"></entry>
+			<entry name="submit" label="Login" type="submit" action="_login"></entry>
+		</ElmForm>
 		<p id="message"></p>
 	</div>
 	`;
