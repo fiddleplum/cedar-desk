@@ -61,15 +61,9 @@ LoginPage.html = /* html */`
 
 LoginPage.css = /* css */`
 	.LoginPage {
+		margin: 0 auto;
 		width: 100%;
 		max-width: 15rem;
-		margin: 0 auto;
-	}
-	.LoginPage label {
-		width: 5rem;
-	}
-	.LoginPage input {
-		width: calc(100% - 5rem);
 	}
 	.LoginPage #submit {
 		width: 100%;

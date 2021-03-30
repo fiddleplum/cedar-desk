@@ -319,9 +319,9 @@ CedarDeskApp.css = /* css */`
 	}
 	#page label {
 		display: inline-block;
-		height: .5rem;
+		height: 2rem;
 	}
-	#page button, input {
+	#page button, input, select {
 		display: inline-block;
 		border: 0;
 		border-radius: .125rem;
