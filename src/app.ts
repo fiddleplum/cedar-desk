@@ -193,6 +193,7 @@ CedarDeskApp.html = /* html */`
 			<span id="title"></span>
 			<button id="menu-button" class="hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg"></icon></button>
 			<div id="menu" class="hidden">
+				<button id="sun-alarm" onclick="_goToPage">Sun Alarm</button>
 				<button id="account" onclick="_goToPage">User Settings</button>
 				<button id="logout" onclick="_logout">Log Out</button>
 			</div>
