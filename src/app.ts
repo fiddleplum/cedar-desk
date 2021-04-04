@@ -1,12 +1,14 @@
 import { download } from 'pine-lib';
 import { SimpleApp, Cookies, WS, Icon } from 'elm-app';
 import { Page } from 'page';
-import { UserSettingsPage } from 'pages/user-page';
+
+import { UserSettingsPage } from 'pages/user-settings-page';
 import { MainPage } from 'pages/main-page';
 import { LoginPage } from 'pages/login-page';
 import { TasksPage } from 'pages/tasks-page';
 import { SunAlarmPage } from 'pages/sun-alarm-page';
 import { AdminPage } from 'pages/admin-page';
+import { SunAlarmAddEditPage } from 'pages/sun-alarm-add-edit-page';
 
 export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
@@ -23,6 +25,7 @@ export class CedarDeskApp extends SimpleApp {
 		this.registerPage('login', LoginPage);
 		this.registerPage('tasks', TasksPage);
 		this.registerPage('sun-alarm', SunAlarmPage);
+		this.registerPage('sun-alarm-add-edit', SunAlarmAddEditPage);
 
 		// Initialize everything else.
 		this.initialize();
@@ -189,9 +192,9 @@ export class CedarDeskApp extends SimpleApp {
 CedarDeskApp.html = /* html */`
 	<body>
 		<div id="header">
-			<button id="logo" id="apps-button"><icon src="assets/icons/logo.svg"></icon></button>
+			<icon id="logo" src="assets/icons/logo.svg" alt=""></icon>
 			<span id="title"></span>
-			<button id="menu-button" class="hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg"></icon></button>
+			<button id="menu-button" class="hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg" alt="menu"></icon></button>
 			<div id="menu" class="hidden">
 				<button id="sun-alarm" onclick="_goToPage">Sun Alarm</button>
 				<button id="account" onclick="_goToPage">User Settings</button>
@@ -199,7 +202,6 @@ CedarDeskApp.html = /* html */`
 			</div>
 		</div>
 		<div id="page"></div>
-		<div id="toolbar"></div>
 	</body>
 	`;
 
@@ -213,50 +215,59 @@ CedarDeskApp.css = /* css */`
 		--color6: #40FFBD;
 		font-size: 24px;
 		line-height: 36px;
+		font-family: 'Helvetica';
 	}
 	* {
 		transition-property: transform, padding, opacity, background, color, fill;
 		transition-duration: .25s;
 		transition-timing-function: ease-out;
 	}
-	.SimpleApp {
+	.CedarDeskApp {
 		margin: 0;
 		width: 100%;
 		min-height: 100vh;
 		display: grid;
-		grid-template-rows: 3rem 1fr 3rem;
-		grid-template-areas: "header" "page" "toolbar";
+		grid-template-rows: 2.5rem 1fr 3rem;
+		grid-template-areas: "header" "page";
 		background: var(--color6);
 	}
-	.SimpleApp #header {
+	.CedarDeskApp #header {
 		grid-area: header;
 		position: relative;
 		display: grid;
 		grid-template-columns: 2.5rem 1fr 2.5rem;
 		grid-template-areas: "logo" "title" "status";
-		padding: .25rem;
 		background: var(--color1);
 		color: var(--color4);
 		fill: var(--color4);
 	}
-	.SimpleApp #header #title {
+	.CedarDeskApp #header #logo {
+		margin: .25rem;
+		width: 2rem;
+		height: 2rem;
+	}
+	.CedarDeskApp #header #title {
+		margin: .25rem;
 		font-size: 1.5rem;
-		line-height: 2.5rem;
+		line-height: 2rem;
 		text-align: center;
 	}
-	.SimpleApp #header button {
-		padding: .25rem;
+	.CedarDeskApp #header #menu-button {
+		margin: .25rem;
+		width: 2rem;
+		height: 2rem;
+		padding: 0;
 	}
-	.SimpleApp #header button:hover {
-		background: var(--color2);
+	.CedarDeskApp #header #menu-button svg {
+		width: 1.5rem;
+		height: 1.5rem;
 	}
-	.SimpleApp #header #menu-button {
-		transition: all .25s;
-	}
-	.SimpleApp #menu {
+	.CedarDeskApp #menu {
 		position: absolute;
 		width: 100%;
-		top: 3rem;
+		max-width: 20rem;
+		right: 0;
+		top: 2.5rem;
 		z-index: 1;
 		border-bottom-left-radius: .25rem;
 		padding: .25rem;
@@ -269,26 +280,23 @@ CedarDeskApp.css = /* css */`
 		transform-origin: 0 0;
 		overflow: hidden;
 	}
-	.SimpleApp #menu button {
+	.CedarDeskApp #menu button {
 		display: block;
+		margin: .25rem 0 0 0;
 		width: 100%;
 	}
-	.SimpleApp #menu button:hover {
+	.CedarDeskApp #menu button:first-child {
+		margin-top: 0;
+	}
+	.CedarDeskApp #menu button:hover {
 		background: var(--color3);
 		color: var(--color5);
 	}
-	.SimpleApp #menu.hidden {
+	.CedarDeskApp #menu.hidden {
 		background: var(--color1);
 		color: var(--color1);
 	}
-	.SimpleApp #toolbar {
-		grid-area: toolbar;
-		background: var(--color1);
-		color: var(--color4);
-		fill: var(--color4);
-		padding: .25rem;
-	}
-	.SimpleApp #page {
+	.CedarDeskApp #page {
 		grid-area: page;
 		position: relative;
 		background: var(--color6);
@@ -296,67 +304,79 @@ CedarDeskApp.css = /* css */`
 		color: var(--color1);
 		fill: var(--color1);
 	}
-	.SimpleApp #page.fadeOut {
+	.CedarDeskApp #page.fadeOut {
 		opacity: 0;
 	}
-	.SimpleApp #page.fadeIn {
+	.CedarDeskApp #page.fadeIn {
 		opacity: 1;
 	}
-	#page h1 {
+	h1 {
 		font-size: 1.5rem;
 		margin: .5rem 0 0 0;
+		font-weight: normal;
 	}
-	#page h2 {
+	h2 {
 		font-size: 1.25rem;
 		margin: .25rem 0 0 0;
+		font-weight: normal;
 	}
-	#page p {
-		margin: .5rem 0 0 0;
+	p {
+		margin: .25rem 0 0 0;
 		max-width: 100%;
+		font-size: 1rem;
+		line-height: 1.125rem;
 	}
-	#page h1:first-child, #page h2:first-child, #page p:first-child {
+	h1:first-child, h2:first-child, p:first-child {
 		margin-top: 0;
 	}
-	#page label {
+	button, input, select, input[type=checkbox] + label, input[type=radio] + label {
 		display: inline-block;
-		height: 2rem;
-	}
-	#page button, input, select {
-		display: inline-block;
-		border: 0;
-		border-radius: .125rem;
+		border-radius: .25rem;
 		outline: 0;
-		padding: .125rem .25rem;
+		padding: 0 .5rem;
 		max-width: 100%;
-		background: var(--color3);
+		background: var(--color5);
+		border: 1px solid var(--color1);
 		color: var(--color1);
 		fill: var(--color1);
-		font-size: inherit;
-		line-height: 0.75rem;
-		height: 2rem;
+		font-size: 1rem;
+		line-height: calc(1.5rem - 2px);
+		height: 1.5rem;
+		text-align: center;
 	}
-	#page button:disabled, input:disabled {
-		background: var(--color4);
+	input[type=checkbox], input[type=radio] {
+		display: none;
+	}
+	input[type=checkbox]:checked + label, input[type=radio]:checked + label {
+		background: var(--color3);
+		transform: scale(1.1);
+	}
+	button:disabled, input:disabled, input[type=checkbox]:disabled + label, input[type=radio]:disabled + label {
 		color: var(--color3);
 	}
-	#page input:focus {
+	input:focus {
 		box-shadow: 0 0 .0625em .0625em var(--border);
-	}
-	button {
-		border-radius: .25rem;
-		font-size: inherit;
-		line-height: inherit;
-		color: inherit;
-		background: transparent;
-		border: 0;
-	}
-	.Icon {
-		width: 2rem;
-		height: 2rem;
 	}
 	.hidden {
 		padding: 0rem;
 		transform: scaleY(0);
+	}
+	.popup1 {
+		margin-top: .5rem;
+		border-radius: .5rem;
+		background: var(--color5);
+		padding: .5rem;
+	}
+	.popup2 {
+		margin-top: .5rem;
+		border-radius: .5rem;
+		background: var(--color4);
+		padding: .5rem;
+	}
+	.fullwidth { 
+		width: 100%;
+		margin-left: 0;
+		margin-right: 0;
 	}
 	`;
 
