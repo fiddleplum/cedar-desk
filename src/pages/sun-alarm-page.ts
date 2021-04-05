@@ -52,6 +52,9 @@ export class SunAlarmPage extends Page {
 					count += 1;
 				}
 			}
+			if (count === 7) {
+				s = 'every day';
+			}
 			if (count > 2) {
 				s = s.replace(/,([^,]+)$/, ', and$1');
 			}

@@ -49,11 +49,13 @@ export class LoginPage extends Page {
 
 LoginPage.html = /* html */`
 	<div>
-		<ElmForm id="form" labelWidth="5rem">
+		<ElmForm id="form">
 			<h1>Please Login</h1>
-			<entry name="user" label="Username" type="text"></entry>
-			<entry name="password" label="Password" type="password"></entry>
-			<entry name="submit" label="Login" type="submit" action="_login"></entry>
+			<p>Username:</p>
+			<entry name="user" type="text"></entry>
+			<p>Password:</p>
+			<entry name="password" type="password"></entry>
+			<entry name="submit" type="submit" action="_login">Login</entry>
 		</ElmForm>
 		<p id="message"></p>
 	</div>
@@ -65,7 +67,10 @@ LoginPage.css = /* css */`
 		width: 100%;
 		max-width: 15rem;
 	}
-	.LoginPage #submit {
+	.LoginPage .ElmForm .entry, .LoginPage .ElmForm h1 {
+		margin-bottom: 1rem;
+	}
+	.LoginPage .submit {
 		width: 100%;
 	}
 	.LoginPage #message:empty {

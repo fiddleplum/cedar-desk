@@ -321,10 +321,23 @@ CedarDeskApp.css = /* css */`
 		font-weight: normal;
 	}
 	p {
-		margin: .25rem 0 0 0;
+		margin: .5rem 0 0 0;
 		max-width: 100%;
 		font-size: 1rem;
 		line-height: 1.125rem;
+	}
+	.ElmForm {
+		margin: .5rem 0 0 0;
+	}
+	.ElmForm .entry {
+		display: inline-block;
+		margin: .5rem .5rem .5rem 0;
+	}
+	.ElmForm .entry.choice label {
+		margin-right: .5rem;
+	}
+	button.submit {
+		margin-top: .5rem;
 	}
 	h1:first-child, h2:first-child, p:first-child {
 		margin-top: 0;
