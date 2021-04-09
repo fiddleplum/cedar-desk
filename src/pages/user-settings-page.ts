@@ -1,5 +1,5 @@
 import { Page } from 'page';
-import { Component } from 'elm-app';
+import { Component, ElmForm } from 'elm-app';
 
 export class UserSettingsPage extends Page {
 	async initialize(): Promise<void> {
@@ -9,21 +9,24 @@ export class UserSettingsPage extends Page {
 
 	private async _changePassword(): Promise<void> {
 		// Get the inputs.
-		const oldPassword = this.element('old-password', HTMLInputElement).value;
-		const newPassword = this.element('new-password', HTMLInputElement).value;
-		const newPasswordAgain = this.element('new-password-again', HTMLInputElement).value;
+		const form = this.component('change-password-form', ElmForm);
+		const values = form.getValues();
+		const oldPassword = values.get('old-password');
+		const newPassword = values.get('new-password');
+		const newPasswordAgain = values.get('new-password-again');
 
+		// Check if the new passwords match.
 		if (newPassword !== newPasswordAgain) {
-			this.element('change-password-message', HTMLParagraphElement).innerHTML = 'Your new password and retyped password do not match.';
+			form.setMessage('Your new password and retyped password do not match.');
 			return;
 		}
 
-		// Clear the message and disable the submit button.
-		this.element('change-password-message', HTMLParagraphElement).innerHTML = '';
-		this.element('change-password-submit', HTMLButtonElement).disabled = true;
+		// Clear the message and disable the form.
+		form.setMessage('');
+		form.setEnabled(false);
 
+		// Send the command.
 		try {
-			// Send the command.
 			await this.app.ws.send({
 				module: 'users',
 				command: 'changePassword',
@@ -34,35 +37,40 @@ export class UserSettingsPage extends Page {
 			}) as string;
 
 			// Print a message.
-			this.element('change-password-message', HTMLParagraphElement).innerHTML = 'Your password has been changed.';
+			form.setMessage('Your password has been changed.');
 
 			// Clear the form.
-			this.element('old-password', HTMLInputElement).value = '';
-			this.element('new-password', HTMLInputElement).value = '';
-			this.element('new-password-again', HTMLInputElement).value = '';
+			form.setValues(new Map(Object.entries({
+				'old-password': '',
+				'new-password': '',
+				'new-password-again': ''
+			})));
 		}
 		catch (error) {
-			this.element('change-password-message', HTMLParagraphElement).innerHTML = (error as Error).message + '';
+			form.setMessage((error as Error).message + '');
 		}
-		this.element('change-password-submit', HTMLButtonElement).disabled = false;
+		form.setEnabled(true);
 	}
 
 	private async _deleteUser(): Promise<void> {
 		// Get the inputs.
-		const password = this.element('password', HTMLInputElement).value;
-		const verify = this.element('verify', HTMLInputElement).value;
+		const form = this.component('delete-account-form', ElmForm);
+		const values = form.getValues();
+		const password = values.get('password');
+		const verify = values.get('verify');
 
+		// Verify that DELETE was input.
 		if (verify !== 'DELETE') {
-			this.element('delete-user-message', HTMLParagraphElement).innerHTML = 'Please enter DELETE to confirm.';
+			form.setMessage('Please enter DELETE to confirm.');
 			return;
 		}
 
 		// Clear the message and disable the submit button.
-		this.element('delete-user-message', HTMLParagraphElement).innerHTML = '';
-		this.element('delete-user-submit', HTMLButtonElement).disabled = true;
+		form.setMessage('');
+		form.setEnabled(false);
 
+		// Send the command.
 		try {
-			// Send the command.
 			await this.app.ws.send({
 				module: 'users',
 				command: 'deleteUser',
@@ -76,9 +84,9 @@ export class UserSettingsPage extends Page {
 			location.reload();
 		}
 		catch (error) {
-			this.element('delete-user-message', HTMLParagraphElement).innerHTML = (error as Error).message + '';
+			form.setMessage((error as Error).message + '');
+			form.setEnabled(true);
 		}
-		this.element('delete-user-submit', HTMLButtonElement).disabled = false;
 	}
 
 	private _goToApp(component: Component): void {
@@ -90,53 +98,29 @@ export class UserSettingsPage extends Page {
 
 UserSettingsPage.html = /* html */`
 	<div>
-		<div class="section">
-			<h1>Change Your Password</h1>
-			<p><label for="old-password">Old Password:</label><input id="old-password" type="password"></input></p>
-			<p><label for="new-password">New Password:</label><input id="new-password" type="password"></input></p>
-			<p><label for="new-password-again">Enter It Again:</label><input id="new-password-again" type="password"></input></p>
-			<p><button id="change-password-submit" class="submit" onclick="_changePassword">Change Password</button></p>
-			<p id="change-password-message"></p>
-		</div>
-		<div class="section">
-			<h1>Delete Your Account</h1>
-			<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
-			<p><label for="password">Password:</label><input id="password" type="password"></input></p>
-			<p><label for="verify">Type DELETE:</label><input id="verify" type="text"></input></p>
-			<p><button id="delete-user-submit" class="submit" onclick="_deleteUser">Delete Account</button></p>
-			<p id="delete-user-message"></p>
-		</div>
+		<h1>Change Your Password</h1>
+		<ElmForm id="change-password-form">
+			<p>Old Password:</p>
+			<entry name="old-password" type="password" width="8rem"></entry>
+			<p>New Password:</p>
+			<entry name="new-password" type="password" width="8rem"></entry>
+			<p>Enter It Again:</p>
+			<entry name="new-password-again" type="password" width="8rem"></entry>
+			<entry type="submit" action="_changePassword">Change Password</entry>
+		</ElmForm>
+		<h1>Delete Your Account</h1>
+		<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
+		<ElmForm id="delete-account-form">
+			<p>Password:</p>
+			<entry name="password" type="password" width="8rem"></entry>
+			<p>Type DELETE to verify that you want to delete your account.</p>
+			<entry name="verify" type="text" width="8rem"></entry>
+			<entry type="submit" action="_deleteUser">Delete Account</entry>
+		</ElmForm>
 	</div>
 	`;
 
 UserSettingsPage.css = /* css */`
-	.UserSettingsPage {
-		width: 100%;
-		max-width: 20rem;
-		margin: 0 auto;
-	}
-	.UserSettingsPage .section {
-		margin-top: 2rem;
-	}
-	.UserSettingsPage .section:first-child {
-		margin-top: 0;
-	}
-	.UserSettingsPage label {
-		width: 7rem;
-	}
-	.UserSettingsPage input {
-		width: calc(100% - 7rem);
-	}
-	.UserSettingsPage .submit {
-		width: 100%;
-	}
-	.UserSettingsPage #message:empty {
-		opacity: 0;
-	}
-	.UserSettingsPage #message {
-		opacity: 1;
-		transition: opacity .125s;
-	}
 `;
 
 UserSettingsPage.register();

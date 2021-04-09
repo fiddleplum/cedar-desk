@@ -52,9 +52,9 @@ LoginPage.html = /* html */`
 		<ElmForm id="form">
 			<h1>Please Login</h1>
 			<p>Username:</p>
-			<entry name="user" type="text"></entry>
+			<entry name="user" type="text" width="8rem;"></entry>
 			<p>Password:</p>
-			<entry name="password" type="password"></entry>
+			<entry name="password" type="password" width="8rem;"></entry>
 			<entry name="submit" type="submit" action="_login">Login</entry>
 		</ElmForm>
 		<p id="message"></p>
@@ -62,17 +62,6 @@ LoginPage.html = /* html */`
 	`;
 
 LoginPage.css = /* css */`
-	.LoginPage {
-		margin: 0 auto;
-		width: 100%;
-		max-width: 15rem;
-	}
-	.LoginPage .ElmForm .entry, .LoginPage .ElmForm h1 {
-		margin-bottom: 1rem;
-	}
-	.LoginPage .submit {
-		width: 100%;
-	}
 	.LoginPage #message:empty {
 		opacity: 0;
 	}

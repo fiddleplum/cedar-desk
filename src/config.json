@@ -1,3 +1,4 @@
 {
-	"serverURL": "localhost:8081"
+	"serverURL": "server.orourley.com:8081",
+	"s2erverURL": "localhost:8081"
 }

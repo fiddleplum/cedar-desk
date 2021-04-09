@@ -1,5 +1,5 @@
 import { Page } from 'page';
-import { Component } from 'elm-app';
+import { Component, ElmForm } from 'elm-app';
 
 export class AdminPage extends Page {
 	async initialize(): Promise<void> {
@@ -25,12 +25,14 @@ export class AdminPage extends Page {
 
 	private async _changePassword(): Promise<void> {
 		// Get the inputs.
-		const user = this.element('change-password-user', HTMLInputElement).value;
-		const newPassword = this.element('change-password-new-password', HTMLInputElement).value;
+		const form = this.component('change-password-form', ElmForm);
+		const values = form.getValues();
+		const user = values.get('change-password-user');
+		const newPassword = values.get('change-password-new-password');
 
 		// Clear the message and disable the submit button.
-		this.element('change-password-message', HTMLParagraphElement).innerHTML = '';
-		this.element('change-password-submit', HTMLButtonElement).disabled = true;
+		form.setMessage('');
+		form.setEnabled(false);
 
 		try {
 			// Send the command.
@@ -44,23 +46,27 @@ export class AdminPage extends Page {
 			}) as string;
 
 			// Print a message.
-			this.element('change-password-message', HTMLParagraphElement).innerHTML = 'The password has been changed.';
+			form.setMessage('The password has been changed.');
 
 			// Clear the form.
-			this.element('change-password-user', HTMLInputElement).value = '';
-			this.element('change-password-new-password', HTMLInputElement).value = '';
+			form.setValues(new Map(Object.entries({
+				'change-password-user': '',
+				'change-password-new-password': ''
+			})));
 		}
 		catch (error) {
-			this.element('change-password-message', HTMLParagraphElement).innerHTML = (error as Error).message + '';
+			form.setMessage((error as Error).message + '');
 		}
-		this.element('change-password-submit', HTMLButtonElement).disabled = false;
+		form.setEnabled(true);
 	}
 
 	private async _createUser(): Promise<void> {
 		// Get the inputs.
-		const user = this.element('create-user-user', HTMLInputElement).value;
-		const password = this.element('create-user-password', HTMLInputElement).value;
-		const groups = this.element('create-user-groups', HTMLInputElement).value.split(',');
+		const form = this.component('create-user-form', ElmForm);
+		const values = form.getValues();
+		const user = values.get('create-user-user');
+		const password = values.get('create-user-password');
+		const groups = (values.get('create-user-groups') as string).split(',');
 
 		// Trim the groups.
 		for (let i = 0; i < groups.length; i++) {
@@ -68,8 +74,8 @@ export class AdminPage extends Page {
 		}
 
 		// Clear the message and disable the submit button.
-		this.element('create-user-message', HTMLParagraphElement).innerHTML = '';
-		this.element('create-user-submit', HTMLButtonElement).disabled = true;
+		form.setMessage('');
+		form.setEnabled(false);
 
 		try {
 			// Send the command.
@@ -84,35 +90,39 @@ export class AdminPage extends Page {
 			});
 
 			// Print a message.
-			this.element('create-user-message', HTMLParagraphElement).innerHTML = 'The user has been created.';
+			form.setMessage('The user has been created.');
 
 			// Clear the form.
-			this.element('create-user-user', HTMLInputElement).value = '';
-			this.element('create-user-password', HTMLInputElement).value = '';
-			this.element('create-user-groups', HTMLInputElement).value = '';
+			form.setValues(new Map(Object.entries({
+				'create-user-user': '',
+				'create-user-password': '',
+				'create-user-groups': ''
+			})));
 
 			// Update the list of users.
 			await this._getUserList();
 		}
 		catch (error) {
-			this.element('create-user-message', HTMLParagraphElement).innerHTML = (error as Error).message + '';
+			form.setMessage((error as Error).message + '');
 		}
-		this.element('create-user-submit', HTMLButtonElement).disabled = false;
+		form.setEnabled(true);
 	}
 
 	private async _deleteUser(): Promise<void> {
 		// Get the inputs.
-		const user = this.element('delete-user-user', HTMLInputElement).value;
-		const verify = this.element('delete-user-verify', HTMLInputElement).value;
+		const form = this.component('delete-user-form', ElmForm);
+		const values = form.getValues();
+		const user = values.get('delete-user-user');
+		const verify = values.get('delete-user-verify');
 
 		if (verify !== 'DELETE') {
-			this.element('delete-user-message', HTMLParagraphElement).innerHTML = 'Please enter DELETE to confirm.';
+			form.setMessage('Please enter DELETE to confirm.');
 			return;
 		}
 
-		// Clear the message and disable the login button.
-		this.element('delete-user-message', HTMLParagraphElement).innerHTML = '';
-		this.element('delete-user-submit', HTMLButtonElement).disabled = true;
+		// Clear the message and disable the submit button.
+		form.setMessage('');
+		form.setEnabled(false);
 
 		try {
 			// Send the command.
@@ -125,19 +135,21 @@ export class AdminPage extends Page {
 			}) as string;
 
 			// Print a message.
-			this.element('delete-user-message', HTMLParagraphElement).innerHTML = 'The user account has been deleted.';
+			form.setMessage('The user account has been deleted.');
 
 			// Clear the form.
-			this.element('delete-user-user', HTMLInputElement).value = '';
-			this.element('delete-user-verify', HTMLInputElement).value = '';
+			form.setValues(new Map(Object.entries({
+				'delete-user-user': '',
+				'delete-user-verify': ''
+			})));
 
 			// Update the list of users.
 			await this._getUserList();
 		}
 		catch (error) {
-			this.element('delete-user-message', HTMLParagraphElement).innerHTML = (error as Error).message + '';
+			form.setMessage((error as Error).message + '');
 		}
-		this.element('delete-user-submit', HTMLButtonElement).disabled = false;
+		form.setEnabled(true);
 	}
 
 	private _goToApp(component: Component): void {
@@ -149,65 +161,40 @@ export class AdminPage extends Page {
 
 AdminPage.html = /* html */`
 	<div>
-		<div class="section">
-			<h1>List of Users</h1>
-			<ul id="user-list">
-			</ul>
-		</div>
-		<div class="section">
-			<h1>Change A User's Password</h1>
-			<p><label for="change-password-user">User:</label><input id="change-password-user" type="text"></input></p>
-			<p><label for="change-password-new-password">Password:</label><input id="change-password-new-password" type="password"></input></p>
-			<p><button id="change-password-submit" class="submit" onclick="_changePassword">Change Password</button></p>
-			<p id="change-password-message"></p>
-		</div>
-		<div class="section">
-			<h1>Create A New User</h1>
-			<p><label for="create-user-user">User:</label><input id="create-user-user" type="text"></input></p>
-			<p><label for="create-user-password">Password:</label><input id="create-user-password" type="password"></input></p>
-			<p><label for="create-user-groups">Groups:</label><input id="create-user-groups" type="text"></input></p>
-			<p><button id="create-user-submit" class="submit" onclick="_createUser">Create User</button></p>
-			<p id="create-user-message"></p>
-		</div>
-		<div class="section">
-			<h1>Delete A User's Account</h1>
-			<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
-			<p><label for="delete-user-user">User:</label><input id="delete-user-user" type="text"></input></p>
-			<p><label for="delete-user-verify">Type DELETE:</label><input id="delete-user-verify" type="text"></input></p>
-			<p><button id="delete-user-submit" class="submit" onclick="_deleteUser">Delete Account</button></p>
-			<p id="delete-user-message"></p>
-		</div>
+		<h1>List of Users</h1>
+		<ul id="user-list">
+		</ul>
+		<h1>Change A User's Password</h1>
+		<ElmForm id="change-password-form">
+			<p>User:</p>
+			<entry name="change-password-user" type="text" width="8rem"></entry>
+			<p>New Password:</p>
+			<entry name="change-password-new-password" type="password" width="8rem"></entry>
+			<entry type="submit" action="_changePassword">Change Password</entry>
+		</ElmForm>
+		<h1>Create A New User</h1>
+		<ElmForm id="create-user-form">
+			<p>User:</p>
+			<entry name="create-user-user" type="text" width="8rem"></entry>
+			<p>Password:</p>
+			<entry name="create-user-password" type="password" width="8rem"></entry>
+			<p>Groups (comma separated)</p>
+			<entry name="create-user-groups" type="text" width="16rem"></entry>
+			<entry type="submit" action="_createUser">Create User</entry>
+		</ElmForm>
+		<h1>Delete A User's Account</h1>
+		<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
+		<ElmForm id="delete-user-form">
+			<p>User:</p>
+			<entry name="delete-user-user" type="text" width="8rem"></entry>
+			<p>Type DELETE to verify that you want to delete the account.</p>
+			<entry name="delete-user-verify" type="text" width="8rem"></entry>
+			<entry type="submit" action="_deleteUser">Delete Account</entry>
+		</ElmForm>
 	</div>
 	`;
 
 AdminPage.css = /* css */`
-	.AdminPage {
-		width: 100%;
-		max-width: 20rem;
-		margin: 0 auto;
-	}
-	.AdminPage .section {
-		margin-top: 2rem;
-	}
-	.AdminPage .section:first-child {
-		margin-top: 0;
-	}
-	.AdminPage label {
-		width: 7rem;
-	}
-	.AdminPage input {
-		width: calc(100% - 7rem);
-	}
-	.AdminPage .submit {
-		width: 100%;
-	}
-	.AdminPage #message:empty {
-		opacity: 0;
-	}
-	.AdminPage #message {
-		opacity: 1;
-		transition: opacity .125s;
-	}
 `;
 
 AdminPage.register();

@@ -298,6 +298,9 @@ CedarDeskApp.css = /* css */`
 	}
 	.CedarDeskApp #page {
 		grid-area: page;
+		margin: 0 auto;
+		width: 100%;
+		max-width: 20rem;
 		position: relative;
 		background: var(--color6);
 		padding: .5rem;
@@ -312,7 +315,7 @@ CedarDeskApp.css = /* css */`
 	}
 	h1 {
 		font-size: 1.5rem;
-		margin: .5rem 0 0 0;
+		margin: 2rem 0 0 0;
 		font-weight: normal;
 	}
 	h2 {
@@ -320,7 +323,7 @@ CedarDeskApp.css = /* css */`
 		margin: .25rem 0 0 0;
 		font-weight: normal;
 	}
-	p {
+	p, ul, ol {
 		margin: .5rem 0 0 0;
 		max-width: 100%;
 		font-size: 1rem;
@@ -331,7 +334,7 @@ CedarDeskApp.css = /* css */`
 	}
 	.ElmForm .entry {
 		display: inline-block;
-		margin: .5rem .5rem .5rem 0;
+		margin: .25rem .5rem .5rem 0;
 	}
 	.ElmForm .entry.choice label {
 		margin-right: .5rem;
@@ -355,7 +358,6 @@ CedarDeskApp.css = /* css */`
 		font-size: 1rem;
 		line-height: calc(1.5rem - 2px);
 		height: 1.5rem;
-		text-align: center;
 	}
 	input[type=checkbox], input[type=radio] {
 		display: none;
