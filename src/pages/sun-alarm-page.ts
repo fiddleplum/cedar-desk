@@ -14,13 +14,17 @@ export class SunAlarmPage extends Page {
 			let html = ``;
 			for (const id in sunAlarmList) {
 				const sunAlarm = sunAlarmList[id];
+				const hours = Math.floor(Math.abs(sunAlarm.timeOffset) / 60);
+				const minutes = Math.abs(sunAlarm.timeOffset) % 60;
+				const angle = sunAlarm.angleOffset;
 				html += `
 					<div id="${id}">
 						<p id="desc-${id}" class="${!sunAlarm.enabled ? 'disabled' : ''}">
-						Sound the <em>${sunAlarm.sound}</em> alarm ${Math.floor(Math.abs(sunAlarm.timeOffset) / 60)} hours
-						and ${Math.abs(sunAlarm.timeOffset) % 60} minutes ${sunAlarm.timeOffset < 0 ? 'before' : 'after'}
-						the time when the sun is ${Math.abs(sunAlarm.angleOffset)} ${sunAlarm.angleOffset < 0 ? 'below' : 'above'}
-						the ${sunAlarm.relativeTo} horizon on ${this._getDaysString(sunAlarm.days)}.</p>
+						Sound the <em>${sunAlarm.sound}</em> alarm ${hours > 0 ? `${hours} hours ` : ''}
+						${hours > 0 && minutes > 0 ? 'and ' : ''} ${minutes > 0 ? `${minutes} minutes ` : ''}
+						${sunAlarm.timeOffset < 0 ? 'before' : 'after'}
+						${angle !== 0 ? `the sun is ${Math.abs(angle)}° ${angle < 0 ? 'below' : 'above'}
+						the ${sunAlarm.relativeTo} horizon` : ` ${sunAlarm.relativeTo}`} on ${this._getDaysString(sunAlarm.days)}.</p>
 						<p>
 							<button id="enabled-${id}" onclick="_toggleEnabled">${sunAlarm.enabled ? 'Disable' : 'Enable'}</button>
 							<button id="edit-${id}" onclick="_goToEditPage">Edit</button>
@@ -31,6 +35,14 @@ export class SunAlarmPage extends Page {
 			}
 			this.insertHtml(this.element('list', Element), null, html);
 		});
+
+		// // Setup the service worker.
+		// const serviceWorkerUrl = 'assets/sun-alarm-service-worker.js';
+		// navigator.serviceWorker.register(serviceWorkerUrl).then((registration: ServiceWorkerRegistration) => {
+		// 	console.log('Sun Alarm service worker registration was successful.');
+		// }).catch((error: Error) => {
+		// 	console.log(`Sun Alarm service worker registration failed: ${error}`);
+		// });
 	}
 
 	private _getDaysString(days: boolean[]): string {
@@ -153,10 +165,14 @@ SunAlarmPage.css = /* css */`
 		color: var(--color3);
 	}
 	.SunAlarmPage > #list > div > p > button {
+		margin-top: .25rem;
 		margin-right: .25rem;
 		width: 5rem;
 		background: var(--color4);
-	]
+	}
+	.SunAlarmPage > #list > div > p > button[id^=edit-] {
+		width: 3rem;
+	}
 `;
 
 SunAlarmPage.register();

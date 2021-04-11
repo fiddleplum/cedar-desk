@@ -299,7 +299,7 @@ CedarDeskApp.css = /* css */`
 	.CedarDeskApp #page {
 		grid-area: page;
 		margin: 0 auto;
-		width: 100%;
+		width: 100vw;
 		max-width: 20rem;
 		position: relative;
 		background: var(--color6);
@@ -342,7 +342,7 @@ CedarDeskApp.css = /* css */`
 	button.submit {
 		margin-top: .5rem;
 	}
-	h1:first-child, h2:first-child, p:first-child {
+	h1:first-of-type, h2:first-of-type, p:first-of-type {
 		margin-top: 0;
 	}
 	button, input, select, input[type=checkbox] + label, input[type=radio] + label {

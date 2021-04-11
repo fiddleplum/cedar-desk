@@ -179,7 +179,7 @@ AdminPage.html = /* html */`
 			<p>Password:</p>
 			<entry name="create-user-password" type="password" width="8rem"></entry>
 			<p>Groups (comma separated)</p>
-			<entry name="create-user-groups" type="text" width="16rem"></entry>
+			<entry name="create-user-groups" type="text" width="12rem"></entry>
 			<entry type="submit" action="_createUser">Create User</entry>
 		</ElmForm>
 		<h1>Delete A User's Account</h1>
