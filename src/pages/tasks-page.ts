@@ -22,14 +22,6 @@ TasksPage.html = /* html */`
 	`;
 
 TasksPage.css = /* css */`
-	label {
-		display: inline-block;
-		width: 5em;
-	}
-	input {
-		display: inline-block;
-		width: 6em;
-	}
 	`;
 
 TasksPage.register();

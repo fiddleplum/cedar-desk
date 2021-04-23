@@ -121,6 +121,9 @@ UserSettingsPage.html = /* html */`
 	`;
 
 UserSettingsPage.css = /* css */`
+	.UserSettingsPage {
+		padding: .5rem;
+	}
 `;
 
 UserSettingsPage.register();

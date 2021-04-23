@@ -4,8 +4,8 @@
 	"description": "Cedar Desk",
 	"private": true,
 	"scripts": {
-		"setup": "yarn install; mkdir -p dist; cp src/config.example.js dist/config.js",
-		"update": "yarn install --no-default-rc",
+		"setup": "yarn install --pure-lockfile; mkdir -p dist; cp src/config.example.js dist/config.js",
+		"update": "yarn install",
 		"build": "webpack --config webpack.dev.js",
 		"build-production": "webpack --config webpack.prod.js",
 		"start": "webpack-dev-server --config webpack.dev.js"

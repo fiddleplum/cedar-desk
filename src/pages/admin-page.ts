@@ -15,7 +15,7 @@ export class AdminPage extends Page {
 		// Get the list of users.
 		const users = await this.app.ws.send({
 			module: 'users',
-			command: 'listUsersAdmin'
+			command: 'listUsers'
 		}) as string[];
 		this.element('user-list', HTMLUListElement).innerHTML = '';
 		for (const user of users) {
@@ -195,6 +195,9 @@ AdminPage.html = /* html */`
 	`;
 
 AdminPage.css = /* css */`
+	.AdminPage {
+		padding: .5rem;
+	}
 `;
 
 AdminPage.register();

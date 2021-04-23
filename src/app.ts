@@ -1,5 +1,5 @@
 import { download } from 'pine-lib';
-import { SimpleApp, Cookies, WS, Icon } from 'elm-app';
+import { SimpleApp, Cookies, WS } from 'elm-app';
 import { Page } from 'page';
 
 import { UserSettingsPage } from 'pages/user-settings-page';
@@ -9,6 +9,7 @@ import { TasksPage } from 'pages/tasks-page';
 import { SunAlarmPage } from 'pages/sun-alarm-page';
 import { AdminPage } from 'pages/admin-page';
 import { SunAlarmAddEditPage } from 'pages/sun-alarm-add-edit-page';
+import { CheckListPage } from 'pages/check-list-page';
 
 export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
@@ -26,6 +27,7 @@ export class CedarDeskApp extends SimpleApp {
 		this.registerPage('tasks', TasksPage);
 		this.registerPage('sun-alarm', SunAlarmPage);
 		this.registerPage('sun-alarm-add-edit', SunAlarmAddEditPage);
+		this.registerPage('check-list', CheckListPage);
 
 		// Initialize everything else.
 		this.initialize();
@@ -66,18 +68,18 @@ export class CedarDeskApp extends SimpleApp {
 		}
 
 		// Authenticate the user or go to the login page.
-		const user = Cookies.get('user');
+		this._user = Cookies.get('user');
 		const session = Cookies.get('session');
 		// If so, try to authenticate with the server.
-		if (user !== undefined && session !== undefined) {
+		if (this._user !== undefined && session !== undefined) {
 			this.setStatus('waiting', 'Logging In');
 			try {
 				await this._ws.send({
 					module: 'users',
 					command: 'authenticate',
 					params: {
-						user,
-						session
+						user: this._user,
+						session: session
 					}});
 				this.setStatus('ready', 'Logged in.');
 				// If we were at the login page, go to the main page.
@@ -122,6 +124,11 @@ export class CedarDeskApp extends SimpleApp {
 		return this._ws;
 	}
 
+	/** Gets the user. */
+	get user(): string | undefined {
+		return this._user;
+	}
+
 	/** Gets the page element. */
 	protected getPageElement(): HTMLElement {
 		return this.element('page', HTMLElement);
@@ -146,7 +153,7 @@ export class CedarDeskApp extends SimpleApp {
 	}
 
 	/** Sets the status icon. */
-	setStatus(name: string, message: string): void {
+	setStatus(_name: string, message: string): void {
 		console.log(`Status: ${message}`);
 		// const statusIcon = this.component('status', Icon);
 		// statusIcon.src = `assets/icons/${name}.svg`;
@@ -187,6 +194,9 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** The websocket. */
 	private _ws: WS = new WS();
+
+	/** The user, once they are logged in. */
+	private _user: string | undefined;
 }
 
 CedarDeskApp.html = /* html */`
@@ -196,7 +206,8 @@ CedarDeskApp.html = /* html */`
 			<span id="title"></span>
 			<button id="menu-button" class="hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg" alt="menu"></icon></button>
 			<div id="menu" class="hidden">
-				<button id="sun-alarm" onclick="_goToPage">Sun Alarm</button>
+				<button id="check-list" onclick="_goToPage">Check Lists</button>
+				<!--<button id="sun-alarm" onclick="_goToPage">Sun Alarm</button>-->
 				<button id="account" onclick="_goToPage">User Settings</button>
 				<button id="logout" onclick="_logout">Log Out</button>
 			</div>
@@ -217,17 +228,17 @@ CedarDeskApp.css = /* css */`
 		line-height: 36px;
 		font-family: 'Helvetica';
 	}
-	* {
-		transition-property: transform, padding, opacity, background, color, fill;
-		transition-duration: .25s;
-		transition-timing-function: ease-out;
-	}
+	// * {
+	// 	transition-property: transform, padding, opacity, background, color, fill;
+	// 	transition-duration: .25s;
+	// 	transition-timing-function: ease-out;
+	// }
 	.CedarDeskApp {
 		margin: 0;
 		width: 100%;
 		min-height: 100vh;
 		display: grid;
-		grid-template-rows: 2.5rem 1fr 3rem;
+		grid-template-rows: 2.5rem 1fr;
 		grid-template-areas: "header" "page";
 		background: var(--color6);
 	}
@@ -298,12 +309,8 @@ CedarDeskApp.css = /* css */`
 	}
 	.CedarDeskApp #page {
 		grid-area: page;
-		margin: 0 auto;
-		width: 100vw;
-		max-width: 20rem;
 		position: relative;
 		background: var(--color6);
-		padding: .5rem;
 		color: var(--color1);
 		fill: var(--color1);
 	}
@@ -315,12 +322,12 @@ CedarDeskApp.css = /* css */`
 	}
 	h1 {
 		font-size: 1.5rem;
-		margin: 2rem 0 0 0;
+		margin: 2rem 0 1rem 0;
 		font-weight: normal;
 	}
 	h2 {
 		font-size: 1.25rem;
-		margin: .25rem 0 0 0;
+		margin: .5rem 0 .25rem 0;
 		font-weight: normal;
 	}
 	p, ul, ol {
@@ -328,6 +335,22 @@ CedarDeskApp.css = /* css */`
 		max-width: 100%;
 		font-size: 1rem;
 		line-height: 1.125rem;
+	}
+	.input, .submit {
+		margin-bottom: 1rem;
+	}
+	label {
+		margin-bottom: .5rem;
+		margin-right: .5rem;
+	}
+	button.icon {
+		width: 2rem;
+		height: 2rem;
+		padding: 0;
+	}
+	svg.Icon {
+		width: 1.5rem;
+		height: 1.5rem;
 	}
 	.ElmForm {
 		margin: .5rem 0 0 0;
@@ -339,9 +362,6 @@ CedarDeskApp.css = /* css */`
 	.ElmForm .entry.choice label {
 		margin-right: .5rem;
 	}
-	button.submit {
-		margin-top: .5rem;
-	}
 	h1:first-of-type, h2:first-of-type, p:first-of-type {
 		margin-top: 0;
 	}
@@ -352,7 +372,7 @@ CedarDeskApp.css = /* css */`
 		padding: 0 .5rem;
 		max-width: 100%;
 		background: var(--color5);
-		border: 1px solid var(--color1);
+		border: 0;
 		color: var(--color1);
 		fill: var(--color1);
 		font-size: 1rem;
@@ -364,7 +384,7 @@ CedarDeskApp.css = /* css */`
 	}
 	input[type=checkbox]:checked + label, input[type=radio]:checked + label {
 		background: var(--color3);
-		transform: scale(1.1);
+		transform: scale(1.05);
 	}
 	button:disabled, input:disabled, input[type=checkbox]:disabled + label, input[type=radio]:disabled + label {
 		color: var(--color3);
