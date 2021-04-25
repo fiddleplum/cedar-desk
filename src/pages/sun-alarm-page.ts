@@ -33,7 +33,7 @@ export class SunAlarmPage extends Page {
 					</div>
 					`;
 			}
-			this.insertHtml(this.element('list', Element), null, html);
+			this.insertHtml(this.query('#list', Element), null, html);
 		});
 
 		// // Setup the service worker.
@@ -83,7 +83,7 @@ export class SunAlarmPage extends Page {
 	private _toggleEnabled(event: Event): void {
 		const buttonElem = event.target as HTMLButtonElement;
 		const id = buttonElem.id.substring('enabled-'.length);
-		const descElem = this.element(`desc-${id}`, HTMLParagraphElement);
+		const descElem = this.query(`#desc-${id}`, HTMLParagraphElement);
 		const disabled = descElem.classList.contains('disabled');
 		this.app.ws.send({
 			module: 'sun-alarm',
@@ -132,7 +132,7 @@ export class SunAlarmPage extends Page {
 				id: id
 			}
 		}).then(() => {
-			this.removeElement(this.element(id, Element));
+			this.removeElement(this.query(`#${id}`, Element));
 		});
 	}
 

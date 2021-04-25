@@ -89,14 +89,14 @@ export class CedarDeskApp extends SimpleApp {
 					}, true);
 				}
 				// Show the menu button.
-				this.element('menu-button', HTMLButtonElement).classList.remove('hidden');
+				this.root.querySelector('.menu-button')!.classList.remove('hidden');
 
 				const groups = await this._ws.send({
 					module: 'users',
 					command: 'getGroups'
 				}) as string[];
 				if (groups.includes('admins')) {
-					this.insertHtml(this.element('menu', HTMLElement), this.element('logout', HTMLElement), `<button id="admin" onclick="_goToPage">Admin</button>`);
+					this.insertHtml(this.query('.menu', Element), this.query('.logout', Element), `<button id="admin" onclick="_goToPage">Admin</button>`);
 				}
 			}
 			catch {
@@ -131,7 +131,7 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** Gets the page element. */
 	protected getPageElement(): HTMLElement {
-		return this.element('page', HTMLElement);
+		return this.query('.page', HTMLElement);
 	}
 
 	/** Callback when a new page is shown. */
@@ -143,13 +143,13 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** Sets the title HTML. */
 	setTitleHTML(html: string): void {
-		const titleElem = this.element('title', HTMLSpanElement);
+		const titleElem = this.query('.title', HTMLSpanElement);
 		titleElem.innerHTML = html;
 	}
 
 	/** Sets the menu HTML. */
 	setMenu(html: string): void {
-		this.insertHtml(this.element('menu', HTMLSpanElement), null, html);
+		this.insertHtml(this.query('.menu', HTMLSpanElement), null, html);
 	}
 
 	/** Sets the status icon. */
@@ -161,7 +161,7 @@ export class CedarDeskApp extends SimpleApp {
 
 	private _goToPage(event: Event): void {
 		if (event.target !== null) {
-			this.element('menu', HTMLDivElement).classList.add('hidden');
+			this.query('.menu', HTMLDivElement).classList.add('hidden');
 			this.router.pushQuery({
 				page: (event.target as HTMLButtonElement).id
 			}, true);
@@ -186,7 +186,7 @@ export class CedarDeskApp extends SimpleApp {
 	}
 
 	private _openMenu(): void {
-		this.element('menu', HTMLDivElement).classList.toggle('hidden');
+		this.query('.menu', HTMLDivElement).classList.toggle('hidden');
 	}
 
 	/** The config. */
@@ -201,18 +201,18 @@ export class CedarDeskApp extends SimpleApp {
 
 CedarDeskApp.html = /* html */`
 	<body>
-		<div id="header">
-			<icon id="logo" src="assets/icons/logo.svg" alt=""></icon>
-			<span id="title"></span>
-			<button id="menu-button" class="hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg" alt="menu"></icon></button>
-			<div id="menu" class="hidden">
-				<button id="check-list" onclick="_goToPage">Check Lists</button>
+		<div class="header">
+			<icon class="logo" src="assets/icons/logo.svg" alt=""></icon>
+			<span class="title"></span>
+			<button class="menu-button hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg" alt="menu"></icon></button>
+			<div class="menu hidden">
+				<button class="check-list" onclick="_goToPage">Check Lists</button>
 				<!--<button id="sun-alarm" onclick="_goToPage">Sun Alarm</button>-->
-				<button id="account" onclick="_goToPage">User Settings</button>
-				<button id="logout" onclick="_logout">Log Out</button>
+				<button class="account" onclick="_goToPage">User Settings</button>
+				<button class="logout" onclick="_logout">Log Out</button>
 			</div>
 		</div>
-		<div id="page"></div>
+		<div class="page"></div>
 	</body>
 	`;
 
@@ -242,7 +242,7 @@ CedarDeskApp.css = /* css */`
 		grid-template-areas: "header" "page";
 		background: var(--color6);
 	}
-	.CedarDeskApp #header {
+	.CedarDeskApp .header {
 		grid-area: header;
 		position: relative;
 		display: grid;
@@ -252,28 +252,28 @@ CedarDeskApp.css = /* css */`
 		color: var(--color4);
 		fill: var(--color4);
 	}
-	.CedarDeskApp #header #logo {
+	.CedarDeskApp .header .logo {
 		margin: .25rem;
 		width: 2rem;
 		height: 2rem;
 	}
-	.CedarDeskApp #header #title {
+	.CedarDeskApp .header .title {
 		margin: .25rem;
 		font-size: 1.5rem;
 		line-height: 2rem;
 		text-align: center;
 	}
-	.CedarDeskApp #header #menu-button {
+	.CedarDeskApp .header .menu-button {
 		margin: .25rem;
 		width: 2rem;
 		height: 2rem;
 		padding: 0;
 	}
-	.CedarDeskApp #header #menu-button svg {
+	.CedarDeskApp .header .menu-button svg {
 		width: 1.5rem;
 		height: 1.5rem;
 	}
-	.CedarDeskApp #menu {
+	.CedarDeskApp .menu {
 		position: absolute;
 		width: 100%;
 		max-width: 20rem;
@@ -291,33 +291,33 @@ CedarDeskApp.css = /* css */`
 		transform-origin: 0 0;
 		overflow: hidden;
 	}
-	.CedarDeskApp #menu button {
+	.CedarDeskApp .menu button {
 		display: block;
 		margin: .25rem 0 0 0;
 		width: 100%;
 	}
-	.CedarDeskApp #menu button:first-child {
+	.CedarDeskApp .menu button:first-child {
 		margin-top: 0;
 	}
-	.CedarDeskApp #menu button:hover {
+	.CedarDeskApp .menu button:hover {
 		background: var(--color3);
 		color: var(--color5);
 	}
-	.CedarDeskApp #menu.hidden {
+	.CedarDeskApp .menu.hidden {
 		background: var(--color1);
 		color: var(--color1);
 	}
-	.CedarDeskApp #page {
+	.CedarDeskApp .page {
 		grid-area: page;
 		position: relative;
 		background: var(--color6);
 		color: var(--color1);
 		fill: var(--color1);
 	}
-	.CedarDeskApp #page.fadeOut {
+	.CedarDeskApp .page.fadeOut {
 		opacity: 0;
 	}
-	.CedarDeskApp #page.fadeIn {
+	.CedarDeskApp .page.fadeIn {
 		opacity: 1;
 	}
 	h1 {

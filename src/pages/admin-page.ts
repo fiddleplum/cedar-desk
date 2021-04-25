@@ -17,9 +17,10 @@ export class AdminPage extends Page {
 			module: 'users',
 			command: 'listUsers'
 		}) as string[];
-		this.element('user-list', HTMLUListElement).innerHTML = '';
+		const userListElem = this.query('#user-list', HTMLUListElement);
+		userListElem.innerHTML = '';
 		for (const user of users) {
-			this.insertHtml(this.element('user-list', HTMLUListElement), null, `<li>${user}</li>`);
+			this.insertHtml(userListElem, null, `<li>${user}</li>`);
 		}
 	}
 

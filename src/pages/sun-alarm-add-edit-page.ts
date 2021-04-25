@@ -10,8 +10,8 @@ export class SunAlarmAddEditPage extends Page {
 
 		this._alarmId = this.app.router.getValue('id');
 		if (this._alarmId !== undefined) {
-			this.element('title', Element).innerHTML = 'Edit Alarm';
-			this.element('submit', Element).innerHTML = 'Update Alarm';
+			this.query('#title', Element).innerHTML = 'Edit Alarm';
+			this.query('#submit', Element).innerHTML = 'Update Alarm';
 
 			// this.element('form', HTMLElement).classList.add('hidden');
 			// Fill in the inputs.
@@ -60,7 +60,7 @@ export class SunAlarmAddEditPage extends Page {
 			angleOffset = Number.parseFloat(inputs.get('angleOffset') as string);
 		}
 		catch {
-			this.element('message', HTMLParagraphElement).innerHTML = 'The angle offset must be a number.';
+			this.query('#message', Element).innerHTML = 'The angle offset must be a number.';
 			return;
 		}
 		if (inputs.get('angleSign') === 'below') {
@@ -75,7 +75,7 @@ export class SunAlarmAddEditPage extends Page {
 			timeOffset = hours * 60 + minutes;
 		}
 		catch {
-			this.element('message', HTMLParagraphElement).innerHTML = 'The time offset must in the format HH:MM.';
+			this.query('#message', Element).innerHTML = 'The time offset must in the format HH:MM.';
 			return;
 		}
 		if (inputs.get('timeSign') === 'before') {
