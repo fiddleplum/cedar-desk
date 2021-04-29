@@ -96,10 +96,11 @@ export class CedarDeskApp extends SimpleApp {
 					command: 'getGroups'
 				}) as string[];
 				if (groups.includes('admins')) {
-					this.insertHtml(this.query('.menu', Element), this.query('.logout', Element), `<button id="admin" onclick="_goToPage">Admin</button>`);
+					this.insertHtml(this.query('.menu', Element), this.query('.logout', Element), `<button data-page="admin" onclick="_goToPage">Admin</button>`);
 				}
 			}
-			catch {
+			catch (e) {
+				console.log(e);
 				this.setStatus('error', 'Error logging in.');
 				this._goToLoginPage();
 			}
@@ -163,7 +164,7 @@ export class CedarDeskApp extends SimpleApp {
 		if (event.target !== null) {
 			this.query('.menu', HTMLDivElement).classList.add('hidden');
 			this.router.pushQuery({
-				page: (event.target as HTMLButtonElement).id
+				page: (event.target as HTMLButtonElement).getAttribute('data-page')!
 			}, true);
 		}
 	}
@@ -206,9 +207,9 @@ CedarDeskApp.html = /* html */`
 			<span class="title"></span>
 			<button class="menu-button hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg" alt="menu"></icon></button>
 			<div class="menu hidden">
-				<button class="check-list" onclick="_goToPage">Check Lists</button>
-				<!--<button id="sun-alarm" onclick="_goToPage">Sun Alarm</button>-->
-				<button class="account" onclick="_goToPage">User Settings</button>
+				<button data-page="check-list" onclick="_goToPage">Check Lists</button>
+				<!--<button data-page="sun-alarm" onclick="_goToPage">Sun Alarm</button>-->
+				<button data-page="account" onclick="_goToPage">User Settings</button>
 				<button class="logout" onclick="_logout">Log Out</button>
 			</div>
 		</div>

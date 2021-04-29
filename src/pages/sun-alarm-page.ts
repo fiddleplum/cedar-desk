@@ -18,22 +18,22 @@ export class SunAlarmPage extends Page {
 				const minutes = Math.abs(sunAlarm.timeOffset) % 60;
 				const angle = sunAlarm.angleOffset;
 				html += `
-					<div id="${id}">
-						<p id="desc-${id}" class="${!sunAlarm.enabled ? 'disabled' : ''}">
+					<div class="${id}">
+						<p class="desc-${id} ${!sunAlarm.enabled ? 'disabled' : ''}">
 						Sound the <em>${sunAlarm.sound}</em> alarm ${hours > 0 ? `${hours} hours ` : ''}
 						${hours > 0 && minutes > 0 ? 'and ' : ''} ${minutes > 0 ? `${minutes} minutes ` : ''}
 						${sunAlarm.timeOffset < 0 ? 'before' : 'after'}
 						${angle !== 0 ? `the sun is ${Math.abs(angle)}° ${angle < 0 ? 'below' : 'above'}
 						the ${sunAlarm.relativeTo} horizon` : ` ${sunAlarm.relativeTo}`} on ${this._getDaysString(sunAlarm.days)}.</p>
 						<p>
-							<button id="enabled-${id}" onclick="_toggleEnabled">${sunAlarm.enabled ? 'Disable' : 'Enable'}</button>
-							<button id="edit-${id}" onclick="_goToEditPage">Edit</button>
-							<button id="remove-${id}" onclick="_removeAlarm">Remove</button>
+							<button data-id="${id}" onclick="_toggleEnabled">${sunAlarm.enabled ? 'Disable' : 'Enable'}</button>
+							<button data-id="${id}" onclick="_goToEditPage">Edit</button>
+							<button data-id="${id}" onclick="_removeAlarm">Remove</button>
 						</p>
 					</div>
 					`;
 			}
-			this.insertHtml(this.query('#list', Element), null, html);
+			this.insertHtml(this.query('.list', Element), null, html);
 		});
 
 		// // Setup the service worker.
@@ -82,8 +82,8 @@ export class SunAlarmPage extends Page {
 
 	private _toggleEnabled(event: Event): void {
 		const buttonElem = event.target as HTMLButtonElement;
-		const id = buttonElem.id.substring('enabled-'.length);
-		const descElem = this.query(`#desc-${id}`, HTMLParagraphElement);
+		const id = buttonElem.getAttribute('data-id')!;
+		const descElem = this.query(`.desc-${id}`, HTMLParagraphElement);
 		const disabled = descElem.classList.contains('disabled');
 		this.app.ws.send({
 			module: 'sun-alarm',
@@ -112,7 +112,7 @@ export class SunAlarmPage extends Page {
 
 	private _goToEditPage(event: Event): void {
 		const buttonElem = event.target as HTMLButtonElement;
-		const id = buttonElem.id.substring('edit-'.length);
+		const id = buttonElem.getAttribute('data-id')!;
 		this.app.router.pushQuery({
 			page: 'sun-alarm-add-edit',
 			id: id
@@ -121,7 +121,7 @@ export class SunAlarmPage extends Page {
 
 	private _removeAlarm(event: Event): void {
 		const buttonElem = event.target as HTMLButtonElement;
-		const id = buttonElem.id.substring('remove-'.length);
+		const id = buttonElem.getAttribute('data-id')!;
 		if (!confirm('Are you sure you want to remove the alarm?')) {
 			return;
 		}
@@ -132,7 +132,7 @@ export class SunAlarmPage extends Page {
 				id: id
 			}
 		}).then(() => {
-			this.removeElement(this.query(`#${id}`, Element));
+			this.removeNode(this.query(`.${id}`, Element));
 		});
 	}
 
@@ -143,7 +143,7 @@ export class SunAlarmPage extends Page {
 SunAlarmPage.html = /* html */`
 	<div>
 		<button onclick="_goToAddPage" class="fullwidth">Add Alarm</button>
-		<div id="list">
+		<div class="list">
 		</div>
 	</div>
 	`;

@@ -57,15 +57,15 @@ LoginPage.html = /* html */`
 			<entry name="password" type="password" width="8rem;"></entry>
 			<entry name="submit" type="submit" action="_login">Login</entry>
 		</ElmForm>
-		<p id="message"></p>
+		<p class="message"></p>
 	</div>
 	`;
 
 LoginPage.css = /* css */`
-	.LoginPage #message:empty {
+	.LoginPage .message:empty {
 		opacity: 0;
 	}
-	.LoginPage #message {
+	.LoginPage .message {
 		opacity: 1;
 		transition: opacity .125s;
 	}

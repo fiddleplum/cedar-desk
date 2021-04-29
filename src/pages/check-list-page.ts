@@ -21,7 +21,7 @@ export class CheckListPage extends Page {
 			let html = '<DragList onReinsert="_checkListListReinserted">';
 			for (const checkListListItem of checkListListData) {
 				html += /* html */`
-					<p class="${checkListListItem.id}">
+					<p data-id="${checkListListItem.id}">
 						<button class="grab icon"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 						<button class="list" onclick="_openViewCheckListPanel|${checkListListItem.id}">${checkListListItem.title}</button>
 						<button class="delete icon" onclick="_openRemoveCheckListPanel|${checkListListItem.id}"><icon src="assets/icons/close.svg" alt="delete"></icon></button>
@@ -39,23 +39,23 @@ export class CheckListPage extends Page {
 			module: 'check-list',
 			command: 'reinsertCheckList',
 			params: {
-				id: elem.id,
-				beforeId: before?.id
+				id: elem.getAttribute('data-id')!,
+				beforeId: before?.getAttribute('data-id')!
 			}
 		});
 	}
 
 	/** Opens a panel. */
-	private _openPanel(id: string): void {
+	private _openPanel(className: string): void {
 		// Get the panel.
-		const panel = this.query(`.${id}`, HTMLElement);
+		const panel = this.query(`.${className}`, HTMLElement);
 		// Show the panel.
 		ShowHide.show(panel);
 		// Prepare the panel, depending on id.
-		if (id === 'edit-check-list-panel') {
+		if (className === 'edit-check-list-panel') {
 			this._prepareEditPanel(panel);
 		}
-		else if (id === 'add-check-list-panel') {
+		else if (className === 'add-check-list-panel') {
 			this._prepareAddPanel(panel);
 		}
 	}
@@ -107,8 +107,8 @@ export class CheckListPage extends Page {
 	}
 
 	/** Closes a panel. */
-	private _closePanel(id: string): void {
-		ShowHide.hide(this.query(`.${id}`, HTMLElement));
+	private _closePanel(className: string): void {
+		ShowHide.hide(this.query(`.${className}`, HTMLElement));
 	}
 
 	/** Prepares the add panel when it is opened. */

@@ -17,7 +17,7 @@ export class AdminPage extends Page {
 			module: 'users',
 			command: 'listUsers'
 		}) as string[];
-		const userListElem = this.query('#user-list', HTMLUListElement);
+		const userListElem = this.query('.user-list', HTMLUListElement);
 		userListElem.innerHTML = '';
 		for (const user of users) {
 			this.insertHtml(userListElem, null, `<li>${user}</li>`);
@@ -163,7 +163,7 @@ export class AdminPage extends Page {
 AdminPage.html = /* html */`
 	<div>
 		<h1>List of Users</h1>
-		<ul id="user-list">
+		<ul class="user-list">
 		</ul>
 		<h1>Change A User's Password</h1>
 		<ElmForm id="change-password-form">

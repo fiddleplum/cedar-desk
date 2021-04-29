@@ -1,5 +1,5 @@
 import { Page } from 'page';
-import { ToggleButton, ElmCheckbox, ShowHide, ElmForm } from 'elm-app';
+import { ShowHide, ElmForm } from 'elm-app';
 import { RandomString } from 'pine-lib';
 import { SunAlarm } from 'types/sun-alarm';
 
@@ -10,8 +10,8 @@ export class SunAlarmAddEditPage extends Page {
 
 		this._alarmId = this.app.router.getValue('id');
 		if (this._alarmId !== undefined) {
-			this.query('#title', Element).innerHTML = 'Edit Alarm';
-			this.query('#submit', Element).innerHTML = 'Update Alarm';
+			this.query('.title', Element).innerHTML = 'Edit Alarm';
+			this.query('.submit', Element).innerHTML = 'Update Alarm';
 
 			// this.element('form', HTMLElement).classList.add('hidden');
 			// Fill in the inputs.
@@ -60,7 +60,7 @@ export class SunAlarmAddEditPage extends Page {
 			angleOffset = Number.parseFloat(inputs.get('angleOffset') as string);
 		}
 		catch {
-			this.query('#message', Element).innerHTML = 'The angle offset must be a number.';
+			this.query('.message', Element).innerHTML = 'The angle offset must be a number.';
 			return;
 		}
 		if (inputs.get('angleSign') === 'below') {
@@ -75,7 +75,7 @@ export class SunAlarmAddEditPage extends Page {
 			timeOffset = hours * 60 + minutes;
 		}
 		catch {
-			this.query('#message', Element).innerHTML = 'The time offset must in the format HH:MM.';
+			this.query('.message', Element).innerHTML = 'The time offset must in the format HH:MM.';
 			return;
 		}
 		if (inputs.get('timeSign') === 'before') {
@@ -118,7 +118,7 @@ export class SunAlarmAddEditPage extends Page {
 SunAlarmAddEditPage.html = /* html */`
 	<div>
 		<button onclick="_goToAlarmList" style="float: right">Back</button>
-		<h1 id="title">Add Alarm</h1>
+		<h1 class="title">Add Alarm</h1>
 		<ElmForm id="form">
 			<p>Should the time of the alarm be relative to sunrise or sunset?</p>
 			<entry name="relativeTo" type="choice" value="sunrise" width="8rem">
@@ -132,7 +132,7 @@ SunAlarmAddEditPage.html = /* html */`
 				<choice value="above">above</choice>
 			</entry>
 			<elmcheckbox id="angle-help-button" ontoggle="_toggleAngleHelp">?</elmcheckbox>
-			<div id="angle-help" class="popup2" style="display: none;">
+			<div class="angle-help" class="popup2" style="display: none;">
 				<p>When the sun is right at the horizon, it is at 0 degrees.</p>
 				<p>Use negative numbers for angles below the horizon and positive numbers for angles above the horizon.</p>
 				<p><img src="assets/images/angle-help.svg"></img></p>
@@ -161,8 +161,8 @@ SunAlarmAddEditPage.html = /* html */`
 				<entry name="day6" type="toggle">S</entry>
 			</p>
 		</ElmForm>
-		<p><button id="submit" onclick="_submit" class="submit">Add</button></p>
-		<p id="message"></p>
+		<p><button class="submit" onclick="_submit" class="submit">Add</button></p>
+		<p class="message"></p>
 	</div>
 	`;
 
@@ -172,7 +172,7 @@ SunAlarmAddEditPage.css = /* css */`
 		width: 100%;
 		max-width: 20rem;
 	}
-	.SunAlarmAddEditPage #days label {
+	.SunAlarmAddEditPage .days label {
 		width: 1.5rem;
 		text-align: center;
 		padding: 0;
