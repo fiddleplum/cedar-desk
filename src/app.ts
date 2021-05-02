@@ -10,6 +10,7 @@ import { SunAlarmPage } from 'pages/sun-alarm-page';
 import { AdminPage } from 'pages/admin-page';
 import { SunAlarmAddEditPage } from 'pages/sun-alarm-add-edit-page';
 import { CheckListPage } from 'pages/check-list-page';
+import { CheckListEditPage } from 'pages/check-list-edit-page';
 
 export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
@@ -28,6 +29,7 @@ export class CedarDeskApp extends SimpleApp {
 		this.registerPage('sun-alarm', SunAlarmPage);
 		this.registerPage('sun-alarm-add-edit', SunAlarmAddEditPage);
 		this.registerPage('check-list', CheckListPage);
+		this.registerPage('check-list-edit', CheckListEditPage);
 
 		// Initialize everything else.
 		this.initialize();
@@ -156,8 +158,6 @@ export class CedarDeskApp extends SimpleApp {
 	/** Sets the status icon. */
 	setStatus(_name: string, message: string): void {
 		console.log(`Status: ${message}`);
-		// const statusIcon = this.component('status', Icon);
-		// statusIcon.src = `assets/icons/${name}.svg`;
 	}
 
 	private _goToPage(event: Event): void {
@@ -307,6 +307,8 @@ CedarDeskApp.css = /* css */`
 	.CedarDeskApp .menu.hidden {
 		background: var(--color1);
 		color: var(--color1);
+		padding: 0rem;
+		transform: scaleY(0);
 	}
 	.CedarDeskApp .page {
 		grid-area: page;
@@ -392,10 +394,6 @@ CedarDeskApp.css = /* css */`
 	}
 	input:focus {
 		box-shadow: 0 0 .0625em .0625em var(--border);
-	}
-	.hidden {
-		padding: 0rem;
-		transform: scaleY(0);
 	}
 	.popup1 {
 		margin-top: .5rem;

@@ -23,7 +23,7 @@ export class CheckListPage extends Page {
 				html += /* html */`
 					<p data-id="${checkListListItem.id}">
 						<button class="grab icon"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-						<button class="list" onclick="_openViewCheckListPanel|${checkListListItem.id}">${checkListListItem.title}</button>
+						<button class="list" onclick="_viewCheckList|${checkListListItem.id}">${checkListListItem.title}</button>
 						<button class="delete icon" onclick="_openRemoveCheckListPanel|${checkListListItem.id}"><icon src="assets/icons/close.svg" alt="delete"></icon></button>
 					</p>`;
 			}
@@ -39,25 +39,33 @@ export class CheckListPage extends Page {
 			module: 'check-list',
 			command: 'reinsertCheckList',
 			params: {
-				id: elem.getAttribute('data-id')!,
-				beforeId: before?.getAttribute('data-id')!
+				id: elem.firstElementChild!.getAttribute('data-id')!,
+				beforeId: before !== undefined ? before.firstElementChild!.getAttribute('data-id')! : undefined
 			}
 		});
 	}
 
 	/** Opens a panel. */
-	private _openPanel(className: string): void {
-		// Get the panel.
-		const panel = this.query(`.${className}`, HTMLElement);
-		// Show the panel.
-		ShowHide.show(panel);
-		// Prepare the panel, depending on id.
-		if (className === 'edit-check-list-panel') {
-			this._prepareEditPanel(panel);
-		}
-		else if (className === 'add-check-list-panel') {
-			this._prepareAddPanel(panel);
-		}
+	private _openAddCheckListPanel(): void {
+		// Get the shared users.
+		this.app.ws.send({
+			module: 'users',
+			command: 'listUsers'
+		}).then((users: string[]) => {
+			// Get the panel.
+			const panel = this.query(`.add-check-list-panel`, HTMLElement);
+			// Show the panel.
+			ShowHide.show(panel);
+			// Setup the shared users elements.
+			const usersElem = panel.querySelector('.add-users') as Element;
+			let html = '';
+			for (const user of users) {
+				if (user !== this.app.user) {
+					html += `<ElmCheckBox name="user-${user}">${user}</ElmCheckBox>`;
+				}
+			}
+			this.insertHtml(usersElem, null, html, this);
+		});
 	}
 
 	private _openRemoveCheckListPanel(id: string): void {
@@ -89,62 +97,16 @@ export class CheckListPage extends Page {
 		});
 	}
 
-	private _openViewCheckListPanel(id: string): void {
-		this.app.ws.send({
-			module: 'check-list',
-			command: 'getCheckList',
-			params: {
-				id: id
-			}
-		}).then((checkListData: CheckListData) => {
-			// Get the panel.
-			const panel = this.query('.view-check-list-panel', HTMLElement);
-			// Show the panel.
-			ShowHide.show(panel);
-			const titleElem = panel.querySelector('.title') as HTMLElement;
-			titleElem.innerHTML = checkListData.title;
-		});
+	private _viewCheckList(id: string): void {
+		this.app.router.pushQuery({
+			page: 'check-list-edit',
+			id: id
+		}, true);
 	}
 
 	/** Closes a panel. */
 	private _closePanel(className: string): void {
 		ShowHide.hide(this.query(`.${className}`, HTMLElement));
-	}
-
-	/** Prepares the add panel when it is opened. */
-	private _prepareAddPanel(panel: HTMLElement): void {
-		// Populate the shared users.
-		this.app.ws.send({
-			module: 'users',
-			command: 'listUsers'
-		}).then((users: string[]) => {
-			const usersElem = panel.querySelector('.add-users') as Element;
-			let html = '';
-			for (const user of users) {
-				if (user !== this.app.user) {
-					html += `<ElmCheckBox name="user-${user}">${user}</ElmCheckBox>`;
-				}
-			}
-			this.insertHtml(usersElem, null, html, this);
-		});
-	}
-
-	/** Prepares the edit panel when it is opened. */
-	private _prepareEditPanel(panel: HTMLElement): void {
-		// Populate the shared users.
-		this.app.ws.send({
-			module: 'users',
-			command: 'listUsers'
-		}).then((users: string[]) => {
-			const usersElem = panel.querySelector('.edit-users') as Element;
-			let html = '';
-			for (const user of users) {
-				if (user !== this.app.user) {
-					html += `<ElmCheckBox name="user-${user}">${user}</ElmCheckBox>`;
-				}
-			}
-			this.insertHtml(usersElem, null, html, this);
-		});
 	}
 
 	private _toggleEditCheckListButtons(): void {
@@ -197,7 +159,7 @@ CheckListPage.html = /* html */`
 		<div class="check-lists"></div>
 		<div class="toolbar">
 			<button onclick="_toggleEditCheckListButtons"><icon src="assets/icons/wrench.svg" alt="Edit check-list list"></icon></button>
-			<button onclick="_openPanel|add-check-list-panel"><icon src="assets/icons/plus.svg" alt="Add check list"></icon></button>
+			<button onclick="_openAddCheckListPanel"><icon src="assets/icons/plus.svg" alt="Add check list"></icon></button>
 		</div>
 		<div class="add-check-list-panel panel" style="display: none;">
 			<button class="close icon" onclick="_closePanel|add-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
@@ -216,23 +178,6 @@ CheckListPage.html = /* html */`
 			<p class="warning" style="display: none;">This check-list is shared with no one else and so it will be permanently deleted.</p>
 			<input class="id" name="id" type="text" style="display: none;"></input>
 			<p><button class="fullWidth submit" onclick="_removeCheckList">Remove</button></p>
-		</div>
-		<div class="edit-check-list-panel panel" style="display: none;">
-			<button class="close icon" onclick="_closePanel|edit-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
-			<h1>Edit Check-List</h1>
-			<p>Enter the title of the check-list.</p>
-			<p><input name="title" type="text" value="" width="10rem" class="input"></input></p>
-			<p>Who do you want to share it with?</p>
-			<p class="edit-users" class="input"></p>
-			<button class="fullWidth submit" onclick="_removeCheckList">Remove</button>
-			<button class="fullWidth submit" onclick="_addCheckList">Save</button>
-		</div>
-		<div class="view-check-list-panel panel" style="display: none;">
-			<button class="close icon" onclick="_closePanel|view-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
-			<h1 class="view-check-list-title"></h1>
-			<div class="toolbar">
-				<button onclick="_openPanel|edit-check-list-panel"><icon src="assets/icons/wrench.svg" alt="Edit check lists"></icon></button>
-			</div>
 		</div>
 	</div>
 	`;

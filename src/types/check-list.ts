@@ -13,7 +13,11 @@ export interface CheckListListItem extends JSONObject {
 export type CheckListListData = CheckListListItem[];
 
 /** A check-list item. */
-export type CheckListItem = string | CheckListItem[];
+export interface CheckListItem extends JSONObject {
+	id: string,
+	text: string,
+	level: number
+}
 
 /** A check-list. */
 export interface CheckListData extends JSONObject {
