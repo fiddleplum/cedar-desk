@@ -98,7 +98,8 @@ export class CedarDeskApp extends SimpleApp {
 					command: 'getGroups'
 				}) as string[];
 				if (groups.includes('admins')) {
-					this.insertHtml(this.query('.menu', Element), this.query('.logout', Element), `<button data-page="admin" onclick="_goToPage">Admin</button>`);
+					const html = `<button data-page="admin" onclick="_goToPage">Admin</button>`;
+					this.insertHtml(html, this.query('.menu', Element), this.query('.logout', Element), );
 				}
 			}
 			catch (e) {
@@ -152,7 +153,7 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** Sets the menu HTML. */
 	setMenu(html: string): void {
-		this.insertHtml(this.query('.menu', HTMLSpanElement), null, html);
+		this.insertHtml(html, this.query('.menu', HTMLSpanElement), undefined);
 	}
 
 	/** Sets the status icon. */

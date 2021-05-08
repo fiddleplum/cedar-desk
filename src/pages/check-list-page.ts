@@ -29,7 +29,7 @@ export class CheckListPage extends Page {
 			}
 			html += '</DragList>';
 			const checkListsElem = this.query('.check-lists', Element);
-			this.setHtml(checkListsElem, html, this);
+			this.setHtml(html, checkListsElem, this);
 		});
 	}
 
@@ -64,7 +64,7 @@ export class CheckListPage extends Page {
 					html += `<ElmCheckBox name="user-${user}">${user}</ElmCheckBox>`;
 				}
 			}
-			this.insertHtml(usersElem, null, html, this);
+			this.insertHtml(html, usersElem, undefined, this);
 		});
 	}
 

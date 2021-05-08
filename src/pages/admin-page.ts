@@ -20,7 +20,7 @@ export class AdminPage extends Page {
 		const userListElem = this.query('.user-list', HTMLUListElement);
 		userListElem.innerHTML = '';
 		for (const user of users) {
-			this.insertHtml(userListElem, null, `<li>${user}</li>`);
+			this.insertHtml(`<li>${user}</li>`, userListElem, undefined);
 		}
 	}
 

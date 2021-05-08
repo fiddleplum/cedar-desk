@@ -33,7 +33,7 @@ export class SunAlarmPage extends Page {
 					</div>
 					`;
 			}
-			this.insertHtml(this.query('.list', Element), null, html);
+			this.insertHtml(html, this.query('.list', Element), undefined);
 		});
 
 		// // Setup the service worker.

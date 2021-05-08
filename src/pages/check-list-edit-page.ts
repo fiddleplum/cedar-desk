@@ -1,6 +1,6 @@
 import { ShowHide, FormHelper, DragList } from 'elm-app';
 import { Page } from 'page';
-import { CheckListData, CheckListItem } from 'types/check-list';
+import { CheckListData } from 'types/check-list';
 
 export class CheckListEditPage extends Page {
 	async initialize(): Promise<void> {
@@ -23,41 +23,53 @@ export class CheckListEditPage extends Page {
 		}).then((checkListData: CheckListData) => {
 			// Set the title.
 			this.query('.title', HTMLElement).innerHTML = checkListData.title;
-			let html = '<DragList onReinsert="_itemReinserted" onBeforeGrab="_itemBeforeGrab" onAfterDrag="_itemAfterDrag" onAfterRelease="_itemAfterRelease">';
+			let html = '<DragList id="list" onBeforeGrab="_itemBeforeGrab" onAfterDrag="_itemAfterDrag" onAfterRelease="_itemAfterRelease">';
 			if (checkListData.items.length !== 0) {
 				for (const item of checkListData.items) {
 					html += /* html */`
-						<p data-id="${item.id}" data-level="${item.level}" style="margin-left: calc(${item.level} * 1rem)">
-							<button class="grab icon"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-							<input class="list" onkeydown="_onKeyDown|${item.id}" oninput="_onInput|${item.id}" value="${item.text}" />
+						<p data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
+							<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+							<input class="list" onkeydown="_onKeyDown" oninput="_onInput" value="${item.text}" />
 						</p>`;
 				}
 			}
 			else {
 				html += /* html */`
-					<p data-id="NEW">
-						<button class="grab icon"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-						<input onkeydown="_onKeyDown|NEW" oninput="_onInput|NEW"></input>
+					<p data-id="NEW" data-level="0" style="margin-left: 0rem">
+						<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+						<input onkeydown="_onKeyDown" oninput="_onInput"></input>
 					</p>`;
 			}
+			html += `</DragList>`;
+			this.setHtml(html, this.query('.items', Element), this);
+			// Add padding so that the bottom element can drag further down.
 			const viewHeight = this.query('.items', HTMLElement).getBoundingClientRect().height;
-			html += `</DragList><div style="height: calc(${viewHeight}px - 2rem)"></div>`;
-			this.setHtml(this.query('.items', Element), html, this);
+			this.query('.DragList', HTMLElement).style.paddingBottom = `calc(${viewHeight}px - 2rem)`;
 		});
+		// Set the update interval for changed items.
+		this._intervalId = window.setInterval(() => {
+			for (const elem of this._changedElems) {
+				this._sendUpdateTextCommand(elem);
+			}
+		}, 5000);
+	}
+
+	/** The destructor. */
+	destroy(): void {
+		window.clearInterval(this._intervalId);
+		super.destroy();
 	}
 
 	/** Called just before an item will be dragged. */
-	private _itemBeforeGrab(_dragList: DragList, elem: HTMLElement): void {
+	private _itemBeforeGrab(_dragList: DragList, elem: HTMLElement, event: MouseEvent | TouchEvent): void {
 		// Shrink the "child" items below the elem.
-		const pElem = elem.firstElementChild!;
-		const parentLevel = Number.parseInt(pElem.getAttribute('data-level')!);
+		const parentLevel = Number.parseInt(elem.getAttribute('data-level')!);
 		let nextElem = elem.nextElementSibling as HTMLElement | null;
 		this._shrunkElems = [];
 		while (nextElem !== null) {
-			const nextPElem = nextElem.firstElementChild!;
-			const nextLevel = Number.parseInt(nextPElem.getAttribute('data-level')!);
-			if (nextLevel === parentLevel + 1) {
-				nextPElem.classList.add('shrunk');
+			const nextLevel = Number.parseInt(nextElem.getAttribute('data-level')!);
+			if (nextLevel >= parentLevel + 1) {
+				nextElem.classList.add('shrunk');
 				this._shrunkElems.push(nextElem);
 			}
 			else {
@@ -65,10 +77,13 @@ export class CheckListEditPage extends Page {
 			}
 			nextElem = nextElem.nextElementSibling as HTMLElement | null;
 		}
+		// Get the x value of the cursor.
+		this._refX = this._getX(event);
 	}
 
 	/** Called just after a drag. */
-	private _itemAfterDrag(_dragList: DragList, elem: HTMLElement): void {
+	private _itemAfterDrag(_dragList: DragList, elem: HTMLElement, event: MouseEvent | TouchEvent, beforeElem: HTMLElement | undefined): void {
+		// Update the scroll so that the item stays in view.
 		const elemBounds = elem.getBoundingClientRect();
 		const container = this.query('.items', HTMLElement);
 		const containerBounds = container.getBoundingClientRect();
@@ -78,38 +93,292 @@ export class CheckListEditPage extends Page {
 		else if (containerBounds.bottom < elemBounds.bottom + elemBounds.height) {
 			container.scrollTop += elemBounds.bottom + elemBounds.height - containerBounds.bottom;
 		}
+		// Get the previous element of where the element would be placed.
+		let prevElem;
+		if (beforeElem !== undefined) {
+			prevElem = beforeElem.previousElementSibling as HTMLElement | null ?? undefined;
+			if (prevElem === elem) {
+				prevElem = prevElem.previousElementSibling as HTMLElement | null ?? undefined;
+			}
+		}
+		else if (elem.parentElement!.children.length > 1) {
+			prevElem = elem.parentElement!.lastElementChild as HTMLElement | null ?? undefined;
+		}
+		// Update any restrictions on the element based on the previous element.
+		const prevElemLevel = prevElem !== undefined ? parseInt(prevElem.getAttribute('data-level')!) : -1;
+		let elemLevel = parseInt(elem.getAttribute('data-level')!);
+		while (elemLevel > prevElemLevel + 1) {
+			this._shiftItem(elem, prevElem, false, -1);
+			elemLevel -= 1;
+		}
+		// Update the left margin of the item for dragging left and right.
+		const oneRemInPx = parseFloat(getComputedStyle(document.body).fontSize);
+		const diffX = this._getX(event) - this._refX;
+		let diffLevel = Math.trunc(diffX / oneRemInPx);
+		while (diffLevel >= 1) {
+			const changedLevel = this._shiftItem(elem, prevElem, false, +1);
+			this._refX += changedLevel * oneRemInPx;
+			diffLevel -= 1;
+		}
+		while (diffLevel <= -1) {
+			const changedLevel = this._shiftItem(elem, prevElem, false, -1);
+			this._refX += changedLevel * oneRemInPx;
+			diffLevel += 1;
+		}
 	}
 
 	/** Called just after the drag is released. */
-	private _itemAfterRelease(_dragList: DragList, _elem: HTMLElement, _before: HTMLElement | null): void {
+	private _itemAfterRelease(_dragList: DragList, elem: HTMLElement, beforeElem: HTMLElement | undefined, changed: boolean): void {
+		// Reinsert the shrunk elems to be after the drag element.
+		if (changed) {
+			for (const shrunkElem of this._shrunkElems) {
+				elem.parentElement!.insertBefore(shrunkElem, beforeElem ?? null);
+			}
+		}
 		// Remove the shrunk class. Use timeout so the transition happens.
 		setTimeout(() => {
 			for (const shrunkElem of this._shrunkElems) {
-				shrunkElem.firstElementChild!.classList.remove('shrunk');
+				shrunkElem.classList.remove('shrunk');
 			}
 		}, 100);
+		// Send the update level command.
+		this._sendUpdateLevelCommand(elem);
+		if (changed) {
+			// Send the reinsert item command.
+			this._sendReinsertItemCommand(elem, beforeElem);
+		}
 	}
 
-	/** Called when the drag list of check-lists has reinserted a list item. */
-	private _itemReinserted(_dragList: DragList, elem: HTMLElement, before: HTMLElement | null): void {
-		if (before !== null && this._shrunkElems.includes(before)) {
-			return;
+	/** Returns the x value of the event. */
+	private _getX(event: MouseEvent | TouchEvent): number {
+		if (event instanceof MouseEvent) {
+			return event.clientX;
 		}
-		// Reinsert the shrunk elems to be after the drag element.
-		for (const shrunkElem of this._shrunkElems) {
-			elem.parentElement!.insertBefore(shrunkElem, before);
+		else if (event instanceof TouchEvent) {
+			if (event.touches.length > 0) {
+				return event.touches[0].clientX;
+			}
 		}
-		// this.app.ws.send({
-		// 	module: 'check-list',
-		// 	command: 'reinsertItems',
-		// 	params: {
-		// 		id: elem.getAttribute('data-id')!,
-		// 		beforeId: before?.getAttribute('data-id')!
-		// 	}
-		// });
+		return NaN;
 	}
 
-	/** Opens a panel. */
+	/** Sends an addItem command. */
+	private _sendAddItemCommand(elem: Element): void {
+		const inputElem = elem.querySelector('input')!;
+		const checkListId = this.app.router.getValue('id')!;
+		const text = inputElem.value;
+		const level = parseInt(elem.getAttribute('data-level')!);
+		const beforeElem = elem.nextElementSibling;
+		const beforeId = beforeElem !== null ? beforeElem.getAttribute('data-id')! : undefined;
+		this.app.ws.send({
+			module: 'check-list',
+			command: 'addItem',
+			params: {
+				checkListId: checkListId,
+				text: text,
+				level: level,
+				beforeId: beforeId
+			}
+		}).then((id: string) => {
+			elem.setAttribute('data-id', id);
+		});
+	}
+
+	/** Sends an updateText command. */
+	private _sendUpdateTextCommand(elem: Element): void {
+		const inputElem = elem.querySelector('input')!;
+		const checkListId = this.app.router.getValue('id')!;
+		const id = elem.getAttribute('data-id')!;
+		const text = inputElem.value;
+		this.app.ws.send({
+			module: 'check-list',
+			command: 'updateText',
+			params: {
+				checkListId: checkListId,
+				id: id,
+				text: text
+			}
+		});
+		// Delete it from the changed inputs, since it has just been saved.
+		this._changedElems.delete(elem);
+	}
+
+	/** Sends an update level command. */
+	private _sendUpdateLevelCommand(elem: Element): void {
+		const checkListId = this.app.router.getValue('id')!;
+		const id = elem.getAttribute('data-id')!;
+		const level = parseInt(elem.getAttribute('data-level')!);
+		this.app.ws.send({
+			module: 'check-list',
+			command: 'updateLevel',
+			params: {
+				checkListId: checkListId,
+				id: id,
+				level: level
+			}
+		});
+	}
+
+	/** Sends a remove item command. */
+	private _sendRemoveItemCommand(elem: Element): void {
+		const checkListId = this.app.router.getValue('id')!;
+		const id = elem.getAttribute('data-id')!;
+		this.app.ws.send({
+			module: 'check-list',
+			command: 'removeItem',
+			params: {
+				checkListId: checkListId,
+				id: id
+			}
+		});
+	}
+
+	/** Sends a reinsert item command. */
+	private _sendReinsertItemCommand(elem: Element, beforeElem: Element | undefined): void {
+		const checkListId = this.app.router.getValue('id')!;
+		const id = elem.getAttribute('data-id')!;
+		this.app.ws.send({
+			module: 'check-list',
+			command: 'reinsertItem',
+			params: {
+				checkListId: checkListId,
+				id: id,
+				beforeId: beforeElem?.getAttribute('data-id') ?? undefined
+			}
+		});
+	}
+
+	/** When a key was pressed while focused on one of the items. */
+	private _onKeyDown(event: KeyboardEvent): void {
+		// Get the relative item and its input.
+		const inputElem = event.target as HTMLInputElement;
+		const elem = inputElem.parentElement as HTMLParagraphElement;
+		if (event.key === 'Enter') {
+			// Create new item below this one at the same level.
+			const dragList = this.component('list', DragList);
+			const itemLevel = elem.getAttribute('data-level');
+			const html = /* html */`
+				<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
+					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+					<input class="list" onkeydown="_onKeyDown" oninput="_onInput" value="" />
+				</p>`;
+			dragList.insertItems(html, elem.nextElementSibling ? elem.nextElementSibling as HTMLElement : undefined);
+			// Add any text to the right of the cursor, to the new input.
+			const newElem = elem.nextElementSibling as HTMLElement;
+			const newInputElem = newElem.querySelector('input')!;
+			newInputElem.value = inputElem.value.substring(inputElem.selectionEnd!);
+			// Remove any text to the right of the cursor from the old input.
+			inputElem.value = inputElem.value.substring(0, inputElem.selectionStart!);
+			// Save both items.
+			this._sendUpdateTextCommand(elem);
+			this._sendAddItemCommand(newElem);
+			// Move focus to new item.
+			newInputElem.focus();
+			newInputElem.setSelectionRange(0, 0);
+		}
+		else if (event.key === 'Backspace' || event.key === 'Delete') {
+			// If it is already blank,
+			if (event.key === 'Backspace'
+					&& inputElem.selectionStart === 0 && inputElem.selectionEnd === 0
+					&& elem.previousElementSibling !== null) {
+				// Append any text in the input to the prev item.
+				const prevElem = elem.previousElementSibling as HTMLElement;
+				const prevInput = prevElem.querySelector('input')!;
+				const prevInputValueLength = prevInput.value.length;
+				prevInput.value = prevInput.value + inputElem.value;
+				// Update the prev item.
+				this._sendUpdateTextCommand(prevElem);
+				// Focus on the end of the previous item.
+				prevInput.focus();
+				prevInput.setSelectionRange(prevInputValueLength, prevInputValueLength);
+				// Send the remove item command.
+				this._sendRemoveItemCommand(elem);
+				// Remove the item from the list.
+				const dragList = this.component('list', DragList);
+				dragList.removeItem(elem);
+				// Make the event not do an actual backspace.
+				event.preventDefault();
+			}
+			else if (event.key === 'Delete'
+					&& inputElem.selectionStart === inputElem.value.length && inputElem.selectionEnd === inputElem.value.length
+					&& elem.nextElementSibling !== null) {
+				// Prepend any text in the input to the next item.
+				const nextElem = elem.nextElementSibling as HTMLElement;
+				const nextInput = nextElem.querySelector('input')!;
+				nextInput.value = inputElem.value + nextInput.value;
+				// Focus on the end of the next item.
+				nextInput.focus();
+				nextInput.setSelectionRange(inputElem.value.length, inputElem.value.length);
+				// Update the next item.
+				this._sendUpdateTextCommand(nextElem);
+				// Send the remove item command.
+				this._sendRemoveItemCommand(elem);
+				// Remove the item from the list.
+				const dragList = this.component('list', DragList);
+				dragList.removeItem(elem);
+				// Make the event not do an actual backspace.
+				event.preventDefault();
+			}
+		}
+		else if (event.key === '[' && event.ctrlKey) {
+			const changed = this._shiftItem(elem, elem.previousElementSibling as HTMLElement | null ?? undefined, true, -1);
+			if (changed !== 0) {
+				this._sendUpdateLevelCommand(elem);
+			}
+		}
+		else if (event.key === ']' && event.ctrlKey) {
+			const changed = this._shiftItem(elem, elem.previousElementSibling as HTMLElement | null ?? undefined, true, +1);
+			if (changed !== 0) {
+				this._sendUpdateLevelCommand(elem);
+			}
+		}
+	}
+
+	/** Shifts an item to the right or left. Returns the actual number of levels changed. */
+	private _shiftItem(elem: HTMLElement, prevElem: HTMLElement | undefined, includeChildren: boolean, direction: number): number {
+		// Make sure that direction is just -1 or +1.
+		direction = direction > 0 ? +1 : -1;
+		// Update the left margin of the item for dragging left and right.
+		const level = parseInt(elem.getAttribute('data-level')!);
+		const prevLevel = prevElem !== undefined ? parseInt(prevElem.getAttribute('data-level')!) : -1;
+		// Move to the right if needed.
+		const newLevel = Math.max(0, Math.min(level + direction, prevLevel + 1));
+		if (newLevel !== level) {
+			elem.setAttribute('data-level', `${newLevel}`);
+			elem.style.marginLeft = `${newLevel}rem`;
+			// Move all children the same amount.
+			if (includeChildren) {
+				let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
+				while (nextElem !== undefined) {
+					const childLevel = parseInt(nextElem.getAttribute('data-level')!);
+					// It's not a child, so finish.
+					if (childLevel <= level) {
+						break;
+					}
+					const newChildLevel = childLevel + newLevel - level;
+					nextElem.setAttribute('data-level', `${newChildLevel}`);
+					nextElem.style.marginLeft = `${newChildLevel}rem`;
+					nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+				}
+			}
+			return newLevel - level;
+		}
+		return 0;
+	}
+
+	/** When one of the items values have changed. */
+	private _onInput(event: InputEvent): void {
+		this._changedElems.add((event.target as HTMLInputElement).parentElement!);
+	}
+
+	/** Goes back to the check-list list page. */
+	private _goToCheckListListPage(): void {
+		this.app.router.pushQuery({
+			page: 'check-list'
+		}, false);
+	}
+
+	/** Opens the edit check-list panel. */
 	private async _openEditCheckListPanel(): Promise<void> {
 		// Get the check-list data.
 		const getCheckListPromise = this.app.ws.send({
@@ -140,7 +409,7 @@ export class CheckListEditPage extends Page {
 				html += `<ElmCheckBox name="user-${user}" checked="${checkListData.users.includes(user)}">${user}</ElmCheckBox>`;
 			}
 		}
-		this.setHtml(usersElem, html, this);
+		this.setHtml(html, usersElem, this);
 	}
 
 	/** Closes a panel. */
@@ -148,6 +417,7 @@ export class CheckListEditPage extends Page {
 		ShowHide.hide(this.query(`.${className}`, HTMLElement));
 	}
 
+	/** Sends the command to edit the check-list properties. */
 	private _editCheckList(): void {
 		const values = FormHelper.getValues(this.query('.edit-check-list-panel', Element));
 		const id = this.app.router.getValue('id') as string;
@@ -174,62 +444,17 @@ export class CheckListEditPage extends Page {
 		});
 	}
 
-	private async _submitInput(id: string): Promise<void> {
-		const pElem = this.query(`p[data-id="${id}"]`, HTMLParagraphElement);
-		const inputElem = pElem.querySelector('input') as HTMLInputElement;
-		if (id === 'NEW') {
-			const pNextElem = pElem.nextElementSibling;
-			const nextId = pNextElem !== null ? pNextElem.getAttribute('data-id')! : null;
-			// call addItem with new text.
-			await this.app.ws.send({
-				module: 'check-list',
-				command: 'insertItem',
-				params: {
-					checkListId: this.app.router.getValue('id'),
-					text: inputElem.value,
-					// parent:
-					before: nextId
-				}
-			});
-		}
-		else {
-			// call updateItem with new text.
-			await this.app.ws.send({
-				module: 'check-list',
-				command: 'updateItem',
-				params: {
-					checkListId: this.app.router.getValue('id'),
-					id: id,
-					text: inputElem.value
-				}
-			});
-		}
-		// Create new item below this one at the same level.
-		// Move focus to new item.
-	}
-
-	private _goToCheckListListPage(): void {
-		this.app.router.pushQuery({
-			page: 'check-list'
-		}, false);
-	}
-
-	private _onKeyDown(id: string, event: KeyboardEvent): void {
-		if (event.key === 'Enter') {
-			const inputElem = this.query(`p[data-id="${id}"] input`, HTMLInputElement);
-			// If the input where enter was pressed has changed,
-			if (inputElem.getAttribute('data-changed') === 'true') {
-				this._submitInput(id);
-			}
-		}
-	}
-
-	private _onInput(id: string): void {
-		const inputElem = this.query(`p[data-id="${id}"] input`, HTMLInputElement);
-		inputElem.setAttribute('data-changed', 'true');
-	}
-
+	/** The list of items currently shrunk. */
 	private _shrunkElems!: HTMLElement[];
+
+	/** The interval id for updating changed items. */
+	private _intervalId!: number;
+
+	/** The set of changed items. */
+	private _changedElems: Set<Element> = new Set();
+
+	/** The initial x-value of the dragged item. */
+	private _refX: number = 0;
 }
 
 CheckListEditPage.html = /* html */`
@@ -270,16 +495,18 @@ CheckListEditPage.css = /* css */`
 		height: 100%;
 	}
 	.CheckListEditPage .items .DragList p {
-		transition: height .25s, padding .25s, margin .25s;
+		transition: height .25s, margin-left .25s;
 	}
 	.CheckListEditPage .items p {
-		margin: 0 0 .5rem 0;
+		margin: 0;
+		padding: 0 0 .5rem 0;
 		line-height: 2rem;
-		height: 1.5rem;
+		height: 2rem;
 	}
 	.CheckListEditPage .items p.shrunk {
 		height: 0rem;
-		margin: 0rem;
+		padding: 0rem;
+		overflow: hidden;
 	}
 	.CheckListEditPage .items p > button.grab {
 		width: 1.5rem;
