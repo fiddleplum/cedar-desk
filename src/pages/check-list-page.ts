@@ -28,7 +28,7 @@ export class CheckListPage extends Page {
 					</p>`;
 			}
 			html += '</DragList>';
-			const checkListsElem = this.query('.check-lists', Element);
+			const checkListsElem = this.query('.check-lists', Element)!;
 			this.setHtml(html, checkListsElem, this);
 		});
 	}
@@ -53,7 +53,7 @@ export class CheckListPage extends Page {
 			command: 'listUsers'
 		}).then((users: string[]) => {
 			// Get the panel.
-			const panel = this.query(`.add-check-list-panel`, HTMLElement);
+			const panel = this.query(`.add-check-list-panel`, HTMLElement)!;
 			// Show the panel.
 			ShowHide.show(panel);
 			// Setup the shared users elements.
@@ -77,7 +77,7 @@ export class CheckListPage extends Page {
 			}
 		}).then((checkListData: CheckListData) => {
 			// Get the panel.
-			const panel = this.query('.remove-check-list-panel', HTMLElement);
+			const panel = this.query('.remove-check-list-panel', HTMLElement)!;
 			// Show the panel.
 			ShowHide.show(panel);
 			// Set the check-list title.
@@ -106,7 +106,7 @@ export class CheckListPage extends Page {
 
 	/** Closes a panel. */
 	private _closePanel(className: string): void {
-		ShowHide.hide(this.query(`.${className}`, HTMLElement));
+		ShowHide.hide(this.query(`.${className}`, HTMLElement)!);
 	}
 
 	private _toggleEditCheckListButtons(): void {
@@ -117,7 +117,7 @@ export class CheckListPage extends Page {
 	}
 
 	private _addCheckList(): void {
-		const values = FormHelper.getValues(this.query('.add-check-list-panel', Element));
+		const values = FormHelper.getValues(this.query('.add-check-list-panel', Element)!);
 		const title = values.get('title');
 		const users: string[] = [];
 		for (const [name, value] of values) {
@@ -139,7 +139,7 @@ export class CheckListPage extends Page {
 	}
 
 	private _removeCheckList(): void {
-		const values = FormHelper.getValues(this.query('.remove-check-list-panel', Element));
+		const values = FormHelper.getValues(this.query('.remove-check-list-panel', Element)!);
 		const id = values.get('id') as string;
 		this.app.ws.send({
 			module: 'check-list',

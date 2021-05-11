@@ -33,7 +33,7 @@ export class SunAlarmPage extends Page {
 					</div>
 					`;
 			}
-			this.insertHtml(html, this.query('.list', Element), undefined);
+			this.insertHtml(html, this.query('.list', Element)!, undefined);
 		});
 
 		// // Setup the service worker.
@@ -83,7 +83,7 @@ export class SunAlarmPage extends Page {
 	private _toggleEnabled(event: Event): void {
 		const buttonElem = event.target as HTMLButtonElement;
 		const id = buttonElem.getAttribute('data-id')!;
-		const descElem = this.query(`.desc-${id}`, HTMLParagraphElement);
+		const descElem = this.query(`.desc-${id}`, HTMLParagraphElement)!;
 		const disabled = descElem.classList.contains('disabled');
 		this.app.ws.send({
 			module: 'sun-alarm',
@@ -132,7 +132,7 @@ export class SunAlarmPage extends Page {
 				id: id
 			}
 		}).then(() => {
-			this.removeNode(this.query(`.${id}`, Element));
+			this.removeNode(this.query(`.${id}`, Element)!);
 		});
 	}
 

@@ -1,5 +1,6 @@
 import { ShowHide, FormHelper, DragList } from 'elm-app';
 import { Page } from 'page';
+import { JSONObject } from 'pine-lib';
 import { CheckListData } from 'types/check-list';
 
 export class CheckListEditPage extends Page {
@@ -19,10 +20,10 @@ export class CheckListEditPage extends Page {
 				id: id
 			}
 		}).catch(() => {
-			this.query('.title', HTMLElement).innerHTML = 'Check-list Not Found';
+			this.query('.title', HTMLElement)!.innerHTML = 'Check-list Not Found';
 		}).then((checkListData: CheckListData) => {
 			// Set the title.
-			this.query('.title', HTMLElement).innerHTML = checkListData.title;
+			this.query('.title', HTMLElement)!.innerHTML = checkListData.title;
 			let html = '<DragList id="list" onBeforeGrab="_itemBeforeGrab" onAfterDrag="_itemAfterDrag" onAfterRelease="_itemAfterRelease">';
 			if (checkListData.items.length !== 0) {
 				for (const item of checkListData.items) {
@@ -41,21 +42,43 @@ export class CheckListEditPage extends Page {
 					</p>`;
 			}
 			html += `</DragList>`;
-			this.setHtml(html, this.query('.items', Element), this);
+			this.setHtml(html, this.query('.items', Element)!, this);
 			// Add padding so that the bottom element can drag further down.
-			const viewHeight = this.query('.items', HTMLElement).getBoundingClientRect().height;
-			this.query('.DragList', HTMLElement).style.paddingBottom = `calc(${viewHeight}px - 2rem)`;
+			const viewHeight = this.query('.items', HTMLElement)!.getBoundingClientRect().height;
+			this.query('.DragList', HTMLElement)!.style.paddingBottom = `calc(${viewHeight}px - 2rem)`;
+			// Register as a websocket handler.
+			this.app.ws.registerHandler('check-list', this._responseHandler.bind(this));
+			// Let the server know we want to receive check-list updates.
+			this.app.ws.send({
+				module: 'check-list',
+				command: 'onCheckList',
+				params: {
+					checkListId: this.app.router.getValue('id')!
+				}
+			});
 		});
 		// Set the update interval for changed items.
 		this._intervalId = window.setInterval(() => {
 			for (const elem of this._changedElems) {
-				this._sendUpdateTextCommand(elem);
+				if (this.root.contains(elem)) {
+					this._sendUpdateTextCommand(elem);
+				}
 			}
 		}, 5000);
 	}
 
 	/** The destructor. */
 	destroy(): void {
+		// Unregister as a websocket handler.
+		this.app.ws.unregisterHandler('check-list');
+		// Let the server know we don't want to receive check-list updates.
+		this.app.ws.send({
+			module: 'check-list',
+			command: 'offCheckList',
+			params: {
+				checkListId: this.app.router.getValue('id')!
+			}
+		});
 		window.clearInterval(this._intervalId);
 		super.destroy();
 	}
@@ -63,12 +86,12 @@ export class CheckListEditPage extends Page {
 	/** Called just before an item will be dragged. */
 	private _itemBeforeGrab(_dragList: DragList, elem: HTMLElement, event: MouseEvent | TouchEvent): void {
 		// Shrink the "child" items below the elem.
-		const parentLevel = Number.parseInt(elem.getAttribute('data-level')!);
+		this._draggedOrigLevel = Number.parseInt(elem.getAttribute('data-level')!);
 		let nextElem = elem.nextElementSibling as HTMLElement | null;
 		this._shrunkElems = [];
 		while (nextElem !== null) {
 			const nextLevel = Number.parseInt(nextElem.getAttribute('data-level')!);
-			if (nextLevel >= parentLevel + 1) {
+			if (nextLevel >= this._draggedOrigLevel + 1) {
 				nextElem.classList.add('shrunk');
 				this._shrunkElems.push(nextElem);
 			}
@@ -85,7 +108,7 @@ export class CheckListEditPage extends Page {
 	private _itemAfterDrag(_dragList: DragList, elem: HTMLElement, event: MouseEvent | TouchEvent, beforeElem: HTMLElement | undefined): void {
 		// Update the scroll so that the item stays in view.
 		const elemBounds = elem.getBoundingClientRect();
-		const container = this.query('.items', HTMLElement);
+		const container = this.query('.items', HTMLElement)!;
 		const containerBounds = container.getBoundingClientRect();
 		if (containerBounds.top > elemBounds.top - elemBounds.height) {
 			container.scrollTop += elemBounds.top - elemBounds.height - containerBounds.top;
@@ -97,18 +120,21 @@ export class CheckListEditPage extends Page {
 		let prevElem;
 		if (beforeElem !== undefined) {
 			prevElem = beforeElem.previousElementSibling as HTMLElement | null ?? undefined;
-			if (prevElem === elem) {
-				prevElem = prevElem.previousElementSibling as HTMLElement | null ?? undefined;
-			}
 		}
-		else if (elem.parentElement!.children.length > 1) {
+		else {
 			prevElem = elem.parentElement!.lastElementChild as HTMLElement | null ?? undefined;
+		}
+		while (prevElem !== undefined && this._shrunkElems.includes(prevElem)) {
+			prevElem = prevElem.previousElementSibling as HTMLElement | null ?? undefined;
+		}
+		if (prevElem === elem) {
+			prevElem = prevElem.previousElementSibling as HTMLElement | null ?? undefined;
 		}
 		// Update any restrictions on the element based on the previous element.
 		const prevElemLevel = prevElem !== undefined ? parseInt(prevElem.getAttribute('data-level')!) : -1;
 		let elemLevel = parseInt(elem.getAttribute('data-level')!);
 		while (elemLevel > prevElemLevel + 1) {
-			this._shiftItem(elem, prevElem, false, -1);
+			this._shiftItem(elem, prevElem, true, -1);
 			elemLevel -= 1;
 		}
 		// Update the left margin of the item for dragging left and right.
@@ -116,12 +142,12 @@ export class CheckListEditPage extends Page {
 		const diffX = this._getX(event) - this._refX;
 		let diffLevel = Math.trunc(diffX / oneRemInPx);
 		while (diffLevel >= 1) {
-			const changedLevel = this._shiftItem(elem, prevElem, false, +1);
+			const changedLevel = this._shiftItem(elem, prevElem, true, +1);
 			this._refX += changedLevel * oneRemInPx;
 			diffLevel -= 1;
 		}
 		while (diffLevel <= -1) {
-			const changedLevel = this._shiftItem(elem, prevElem, false, -1);
+			const changedLevel = this._shiftItem(elem, prevElem, true, -1);
 			this._refX += changedLevel * oneRemInPx;
 			diffLevel += 1;
 		}
@@ -371,6 +397,70 @@ export class CheckListEditPage extends Page {
 		this._changedElems.add((event.target as HTMLInputElement).parentElement!);
 	}
 
+	/** When a command is received from the server. */
+	private _responseHandler(response: JSONObject): void {
+		const command = response.command;
+		const dragList = this.component('list', DragList);
+		if (command === 'addItem') {
+			const id = response.id as string;
+			const level = response.level as number;
+			const text = response.text as string;
+			const beforeId = response.beforeId as string | undefined;
+			// Get the beforeElem.
+			const beforeElem = beforeId !== undefined ? this.query(`[data-id="${beforeId}"]`, HTMLElement) : undefined;
+			// Create new item below this one at the same level.
+			const html = /* html */`
+				<p data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
+					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+					<input class="list" onkeydown="_onKeyDown" oninput="_onInput" value="${text}" />
+				</p>`;
+			dragList.insertItems(html, beforeElem);
+		}
+		else if (command === 'removeItem') {
+			const id = response.id as string;
+			const elem = this.query(`[data-id="${id}"]`, HTMLElement);
+			if (elem !== undefined) {
+				dragList.removeItem(elem);
+			}
+		}
+		else if (command === 'updateText') {
+			const id = response.id as string;
+			const text = response.text as string;
+			const elem = this.query(`[data-id="${id}"] input`, HTMLInputElement);
+			if (elem !== undefined) {
+				elem.value = text;
+			}
+		}
+		else if (command === 'updateLevels') {
+			const items = response.items as [[string, number]];
+			for (let i = 0; i < items.length; i++) {
+				const id = items[i][0];
+				const level = items[i][1];
+				const elem = this.query(`[data-id="${id}"]`, HTMLElement);
+				if (elem !== undefined) {
+					elem.setAttribute('data-level', `${level}`);
+					elem.style.marginLeft = `${level}rem`;
+				}
+			}
+		}
+		else if (command === 'reinsertItems') {
+			const ids = response.ids as string[];
+			const beforeId = response.beforeId as string | undefined;
+			// Get the beforeElem.
+			const beforeElem = beforeId !== undefined ? this.query(`[data-id="${beforeId}"]`, HTMLElement) : undefined;
+			// Reinsert the items, one at a time.
+			for (let i = 0; i < ids.length; i++) {
+				const id = ids[i];
+				const elem = this.query(`[data-id="${id}"]`, HTMLElement);
+				if (elem !== undefined) {
+					elem.parentElement!.insertBefore(elem, beforeElem ?? null);
+				}
+			}
+		}
+	}
+
+	//// EDIT PAGE
+
 	/** Goes back to the check-list list page. */
 	private _goToCheckListListPage(): void {
 		this.app.router.pushQuery({
@@ -396,7 +486,7 @@ export class CheckListEditPage extends Page {
 		// Wait for the data.
 		const [checkListData, users] = await Promise.all([getCheckListPromise, listUsersPromise]) as [CheckListData, string[]];
 		// Get the panel.
-		const panel = this.query('.edit-check-list-panel', HTMLElement);
+		const panel = this.query('.edit-check-list-panel', HTMLElement)!;
 		// Show the panel.
 		ShowHide.show(panel);
 		// Populate the title.
@@ -414,12 +504,12 @@ export class CheckListEditPage extends Page {
 
 	/** Closes a panel. */
 	private _closePanel(className: string): void {
-		ShowHide.hide(this.query(`.${className}`, HTMLElement));
+		ShowHide.hide(this.query(`.${className}`, HTMLElement)!);
 	}
 
 	/** Sends the command to edit the check-list properties. */
 	private _editCheckList(): void {
-		const values = FormHelper.getValues(this.query('.edit-check-list-panel', Element));
+		const values = FormHelper.getValues(this.query('.edit-check-list-panel', Element)!);
 		const id = this.app.router.getValue('id') as string;
 		const title = values.get('title');
 		const users: string[] = [];
@@ -446,6 +536,9 @@ export class CheckListEditPage extends Page {
 
 	/** The list of items currently shrunk. */
 	private _shrunkElems!: HTMLElement[];
+
+	/** The original level of the dragged item. */
+	private _draggedOrigLevel: number = 0;
 
 	/** The interval id for updating changed items. */
 	private _intervalId!: number;

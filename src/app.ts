@@ -99,7 +99,7 @@ export class CedarDeskApp extends SimpleApp {
 				}) as string[];
 				if (groups.includes('admins')) {
 					const html = `<button data-page="admin" onclick="_goToPage">Admin</button>`;
-					this.insertHtml(html, this.query('.menu', Element), this.query('.logout', Element), );
+					this.insertHtml(html, this.query('.menu', Element)!, this.query('.logout', Element), this);
 				}
 			}
 			catch (e) {
@@ -135,7 +135,7 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** Gets the page element. */
 	protected getPageElement(): HTMLElement {
-		return this.query('.page', HTMLElement);
+		return this.query('.page', HTMLElement)!;
 	}
 
 	/** Callback when a new page is shown. */
@@ -147,13 +147,13 @@ export class CedarDeskApp extends SimpleApp {
 
 	/** Sets the title HTML. */
 	setTitleHTML(html: string): void {
-		const titleElem = this.query('.title', HTMLSpanElement);
+		const titleElem = this.query('.title', HTMLSpanElement)!;
 		titleElem.innerHTML = html;
 	}
 
 	/** Sets the menu HTML. */
 	setMenu(html: string): void {
-		this.insertHtml(html, this.query('.menu', HTMLSpanElement), undefined);
+		this.insertHtml(html, this.query('.menu', HTMLSpanElement)!, undefined);
 	}
 
 	/** Sets the status icon. */
@@ -163,7 +163,7 @@ export class CedarDeskApp extends SimpleApp {
 
 	private _goToPage(event: Event): void {
 		if (event.target !== null) {
-			this.query('.menu', HTMLDivElement).classList.add('hidden');
+			this.query('.menu', HTMLDivElement)!.classList.add('hidden');
 			this.router.pushQuery({
 				page: (event.target as HTMLButtonElement).getAttribute('data-page')!
 			}, true);
@@ -188,7 +188,7 @@ export class CedarDeskApp extends SimpleApp {
 	}
 
 	private _openMenu(): void {
-		this.query('.menu', HTMLDivElement).classList.toggle('hidden');
+		this.query('.menu', HTMLDivElement)!.classList.toggle('hidden');
 	}
 
 	/** The config. */

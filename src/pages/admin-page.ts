@@ -17,7 +17,7 @@ export class AdminPage extends Page {
 			module: 'users',
 			command: 'listUsers'
 		}) as string[];
-		const userListElem = this.query('.user-list', HTMLUListElement);
+		const userListElem = this.query('.user-list', HTMLUListElement)!;
 		userListElem.innerHTML = '';
 		for (const user of users) {
 			this.insertHtml(`<li>${user}</li>`, userListElem, undefined);
