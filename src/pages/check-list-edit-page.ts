@@ -1,4 +1,4 @@
-import { ShowHide, FormHelper, DragList } from 'elm-app';
+import { ShowHide, ElmForm, DragList } from 'elm-app';
 import { Page } from 'page';
 import { JSONObject } from 'pine-lib';
 import { CheckListData } from 'types/check-list';
@@ -24,13 +24,17 @@ export class CheckListEditPage extends Page {
 		}).then((checkListData: CheckListData) => {
 			// Set the title.
 			this.query('.title', HTMLElement)!.innerHTML = checkListData.title;
-			let html = '<DragList id="list" onBeforeGrab="_itemBeforeGrab" onAfterDrag="_itemAfterDrag" onAfterRelease="_itemAfterRelease">';
+			// Set the remove-on-check flag.
+			this._removeOnCheck = checkListData.removeOnCheck;
+			// Set the drag list.
+			let html = '<DragList id="list" onBeforeGrab="_onItemBeforeGrab" onAfterDrag="_onItemAfterDrag" onAfterRelease="_onItemAfterRelease">';
 			if (checkListData.items.length !== 0) {
 				for (const item of checkListData.items) {
 					html += /* html */`
 						<p data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
 							<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-							<input class="list" onkeydown="_onKeyDown" oninput="_onInput" value="${item.text}" />
+							<label class="checked"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+							<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="${item.text}" />
 						</p>`;
 				}
 			}
@@ -38,11 +42,17 @@ export class CheckListEditPage extends Page {
 				html += /* html */`
 					<p data-id="NEW" data-level="0" style="margin-left: 0rem">
 						<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-						<input onkeydown="_onKeyDown" oninput="_onInput"></input>
+						<label class="checked"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+						<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput"></input>
 					</p>`;
 			}
 			html += `</DragList>`;
 			this.setHtml(html, this.query('.items', Element)!, this);
+			// Save the new element if it's the only new one.
+			if (checkListData.items.length === 0) {
+				const newElem = this.query('p[data-id="NEW"]', HTMLElement)!;
+				this._sendAddItemCommand(newElem);
+			}
 			// Add padding so that the bottom element can drag further down.
 			const viewHeight = this.query('.items', HTMLElement)!.getBoundingClientRect().height;
 			this.query('.DragList', HTMLElement)!.style.paddingBottom = `calc(${viewHeight}px - 2rem)`;
@@ -84,7 +94,7 @@ export class CheckListEditPage extends Page {
 	}
 
 	/** Called just before an item will be dragged. */
-	private _itemBeforeGrab(_dragList: DragList, elem: HTMLElement, event: MouseEvent | TouchEvent): void {
+	private _onItemBeforeGrab(_dragList: DragList, _event: string, elem: HTMLElement, event: MouseEvent | TouchEvent): void {
 		// Shrink the "child" items below the elem.
 		this._draggedOrigLevel = Number.parseInt(elem.getAttribute('data-level')!);
 		let nextElem = elem.nextElementSibling as HTMLElement | null;
@@ -105,7 +115,7 @@ export class CheckListEditPage extends Page {
 	}
 
 	/** Called just after a drag. */
-	private _itemAfterDrag(_dragList: DragList, elem: HTMLElement, event: MouseEvent | TouchEvent, beforeElem: HTMLElement | undefined): void {
+	private _onItemAfterDrag(_dragList: DragList, _event: string, elem: HTMLElement, event: MouseEvent | TouchEvent, beforeElem: HTMLElement | undefined): void {
 		// Update the scroll so that the item stays in view.
 		const elemBounds = elem.getBoundingClientRect();
 		const container = this.query('.items', HTMLElement)!;
@@ -137,6 +147,11 @@ export class CheckListEditPage extends Page {
 			this._shiftItem(elem, prevElem, true, -1);
 			elemLevel -= 1;
 		}
+		const beforeElemLevel = beforeElem !== undefined ? parseInt(beforeElem.getAttribute('data-level')!) : -1;
+		while (elemLevel < beforeElemLevel - 1) {
+			this._shiftItem(elem, prevElem, true, +1);
+			elemLevel += 1;
+		}
 		// Update the left margin of the item for dragging left and right.
 		const oneRemInPx = parseFloat(getComputedStyle(document.body).fontSize);
 		const diffX = this._getX(event) - this._refX;
@@ -154,7 +169,7 @@ export class CheckListEditPage extends Page {
 	}
 
 	/** Called just after the drag is released. */
-	private _itemAfterRelease(_dragList: DragList, elem: HTMLElement, beforeElem: HTMLElement | undefined, changed: boolean): void {
+	private _onItemAfterRelease(_dragList: DragList, _event: string, elem: HTMLElement, beforeElem: HTMLElement | undefined, changed: boolean): void {
 		// Reinsert the shrunk elems to be after the drag element.
 		if (changed) {
 			for (const shrunkElem of this._shrunkElems) {
@@ -162,11 +177,13 @@ export class CheckListEditPage extends Page {
 			}
 		}
 		// Remove the shrunk class. Use timeout so the transition happens.
-		setTimeout(() => {
-			for (const shrunkElem of this._shrunkElems) {
+		setTimeout(((shrunkElems: HTMLElement[]): void => {
+			for (const shrunkElem of shrunkElems) {
 				shrunkElem.classList.remove('shrunk');
 			}
-		}, 100);
+		}).bind(undefined, this._shrunkElems), 100);
+		// Clean up the shrunk elements.
+		this._shrunkElems = [];
 		// Send the update level command.
 		this._sendUpdateLevelCommand(elem);
 		if (changed) {
@@ -190,9 +207,11 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an addItem command. */
 	private _sendAddItemCommand(elem: Element): void {
-		const inputElem = elem.querySelector('input')!;
 		const checkListId = this.app.router.getValue('id')!;
-		const text = inputElem.value;
+		const checkedInputElem = elem.querySelector('input[name="checked"]') as HTMLInputElement;
+		const textInputElem = elem.querySelector('input[name="text"]') as HTMLInputElement;
+		const checked = checkedInputElem.checked;
+		const text = textInputElem.value;
 		const level = parseInt(elem.getAttribute('data-level')!);
 		const beforeElem = elem.nextElementSibling;
 		const beforeId = beforeElem !== null ? beforeElem.getAttribute('data-id')! : undefined;
@@ -201,6 +220,7 @@ export class CheckListEditPage extends Page {
 			command: 'addItem',
 			params: {
 				checkListId: checkListId,
+				checked: checked,
 				text: text,
 				level: level,
 				beforeId: beforeId
@@ -210,12 +230,31 @@ export class CheckListEditPage extends Page {
 		});
 	}
 
+	/** Sends an updateChecked command. */
+	private _sendUpdateCheckedCommand(elem: Element): void {
+		const checkListId = this.app.router.getValue('id')!;
+		const checkedInputElem = elem.querySelector('input[name="checked"]') as HTMLInputElement;
+		const id = elem.getAttribute('data-id')!;
+		const checked = checkedInputElem.checked;
+		this.app.ws.send({
+			module: 'check-list',
+			command: 'updateChecked',
+			params: {
+				checkListId: checkListId,
+				id: id,
+				checked: checked
+			}
+		});
+		// Delete it from the changed inputs, since it has just been saved.
+		this._changedElems.delete(elem);
+	}
+
 	/** Sends an updateText command. */
 	private _sendUpdateTextCommand(elem: Element): void {
-		const inputElem = elem.querySelector('input')!;
 		const checkListId = this.app.router.getValue('id')!;
+		const textInputElem = elem.querySelector('input[name="text"]') as HTMLInputElement;
 		const id = elem.getAttribute('data-id')!;
-		const text = inputElem.value;
+		const text = textInputElem.value;
 		this.app.ws.send({
 			module: 'check-list',
 			command: 'updateText',
@@ -286,12 +325,13 @@ export class CheckListEditPage extends Page {
 			const html = /* html */`
 				<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
 					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<input class="list" onkeydown="_onKeyDown" oninput="_onInput" value="" />
+					<label class="checked"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+					<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="" />
 				</p>`;
 			dragList.insertItems(html, elem.nextElementSibling ? elem.nextElementSibling as HTMLElement : undefined);
 			// Add any text to the right of the cursor, to the new input.
 			const newElem = elem.nextElementSibling as HTMLElement;
-			const newInputElem = newElem.querySelector('input')!;
+			const newInputElem = newElem.querySelector('input[name="text"]') as HTMLInputElement;
 			newInputElem.value = inputElem.value.substring(inputElem.selectionEnd!);
 			// Remove any text to the right of the cursor from the old input.
 			inputElem.value = inputElem.value.substring(0, inputElem.selectionStart!);
@@ -309,7 +349,7 @@ export class CheckListEditPage extends Page {
 					&& elem.previousElementSibling !== null) {
 				// Append any text in the input to the prev item.
 				const prevElem = elem.previousElementSibling as HTMLElement;
-				const prevInput = prevElem.querySelector('input')!;
+				const prevInput = prevElem.querySelector('input[name="text"]') as HTMLInputElement;
 				const prevInputValueLength = prevInput.value.length;
 				prevInput.value = prevInput.value + inputElem.value;
 				// Update the prev item.
@@ -330,7 +370,7 @@ export class CheckListEditPage extends Page {
 					&& elem.nextElementSibling !== null) {
 				// Prepend any text in the input to the next item.
 				const nextElem = elem.nextElementSibling as HTMLElement;
-				const nextInput = nextElem.querySelector('input')!;
+				const nextInput = nextElem.querySelector('input[name="text"]') as HTMLInputElement;
 				nextInput.value = inputElem.value + nextInput.value;
 				// Focus on the end of the next item.
 				nextInput.focus();
@@ -374,17 +414,27 @@ export class CheckListEditPage extends Page {
 			elem.style.marginLeft = `${newLevel}rem`;
 			// Move all children the same amount.
 			if (includeChildren) {
-				let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
-				while (nextElem !== undefined) {
-					const childLevel = parseInt(nextElem.getAttribute('data-level')!);
-					// It's not a child, so finish.
-					if (childLevel <= level) {
-						break;
+				if (this._shrunkElems.length > 0) {
+					for (let i = 0; i < this._shrunkElems.length; i++) {
+						const childElem = this._shrunkElems[i];
+						const newChildLevel = parseInt(childElem.getAttribute('data-level')!) + newLevel - level;
+						childElem.setAttribute('data-level', `${newChildLevel}`);
+						childElem.style.marginLeft = `${newChildLevel}rem`;
 					}
-					const newChildLevel = childLevel + newLevel - level;
-					nextElem.setAttribute('data-level', `${newChildLevel}`);
-					nextElem.style.marginLeft = `${newChildLevel}rem`;
-					nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+				}
+				else {
+					let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
+					while (nextElem !== undefined) {
+						const childLevel = parseInt(nextElem.getAttribute('data-level')!);
+						// It's not a child, so finish.
+						if (childLevel <= level) {
+							break;
+						}
+						const newChildLevel = childLevel + newLevel - level;
+						nextElem.setAttribute('data-level', `${newChildLevel}`);
+						nextElem.style.marginLeft = `${newChildLevel}rem`;
+						nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+					}
 				}
 			}
 			return newLevel - level;
@@ -392,9 +442,48 @@ export class CheckListEditPage extends Page {
 		return 0;
 	}
 
-	/** When one of the items values have changed. */
+	/** When one of the items text values have changed. */
 	private _onInput(event: InputEvent): void {
 		this._changedElems.add((event.target as HTMLInputElement).parentElement!);
+	}
+
+	/** When one of the items is checked. */
+	private _onChecked(event: InputEvent): void {
+		const checkedInputElem = event.target as HTMLInputElement;
+		const elem = checkedInputElem.parentElement!.parentElement!;
+		if (this._removeOnCheck) {
+			const elemsToRemove = [elem];
+			// Remove the children too.
+			const level = parseInt(elem.getAttribute('data-level')!);
+			let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
+			while (nextElem !== undefined) {
+				const childLevel = parseInt(nextElem.getAttribute('data-level')!);
+				// It's not a child, so finish.
+				if (childLevel <= level) {
+					break;
+				}
+				elemsToRemove.push(nextElem);
+				nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+			}
+			for (const elemToRemove of elemsToRemove) {
+				elemToRemove.parentElement!.removeChild(elemToRemove);
+			}
+		}
+		else {
+			// Check the children too.
+			const level = parseInt(elem.getAttribute('data-level')!);
+			let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
+			while (nextElem !== undefined) {
+				const childLevel = parseInt(nextElem.getAttribute('data-level')!);
+				// It's not a child, so finish.
+				if (childLevel <= level) {
+					break;
+				}
+				(nextElem.querySelector('input[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
+				nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+			}
+		}
+		this._sendUpdateCheckedCommand(elem);
 	}
 
 	/** When a command is received from the server. */
@@ -403,8 +492,9 @@ export class CheckListEditPage extends Page {
 		const dragList = this.component('list', DragList);
 		if (command === 'addItem') {
 			const id = response.id as string;
-			const level = response.level as number;
+			const checked = response.checked as boolean;
 			const text = response.text as string;
+			const level = response.level as number;
 			const beforeId = response.beforeId as string | undefined;
 			// Get the beforeElem.
 			const beforeElem = beforeId !== undefined ? this.query(`[data-id="${beforeId}"]`, HTMLElement) : undefined;
@@ -412,7 +502,8 @@ export class CheckListEditPage extends Page {
 			const html = /* html */`
 				<p data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
 					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<input class="list" onkeydown="_onKeyDown" oninput="_onInput" value="${text}" />
+					<label class="checked"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
+					<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="${text}" />
 				</p>`;
 			dragList.insertItems(html, beforeElem);
 		}
@@ -423,10 +514,52 @@ export class CheckListEditPage extends Page {
 				dragList.removeItem(elem);
 			}
 		}
+		else if (command === 'updateChecked') {
+			const id = response.id as string;
+			const checked = response.checked as boolean;
+			const elem = this.query(`[data-id="${id}"]`, HTMLElement);
+			if (elem === undefined) {
+				return;
+			}
+			if (this._removeOnCheck) {
+				const elemsToRemove = [elem];
+				// Remove the children too.
+				const level = parseInt(elem.getAttribute('data-level')!);
+				let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
+				while (nextElem !== undefined) {
+					const childLevel = parseInt(nextElem.getAttribute('data-level')!);
+					// It's not a child, so finish.
+					if (childLevel <= level) {
+						break;
+					}
+					elemsToRemove.push(nextElem);
+					nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+				}
+				for (const elemToRemove of elemsToRemove) {
+					elemToRemove.parentElement!.removeChild(elemToRemove);
+				}
+			}
+			else {
+				const checkedInputElem = elem.querySelector(`input[name="checked"]`) as HTMLInputElement;
+				checkedInputElem.checked = checked;
+				// Check the children too.
+				const level = parseInt(elem.getAttribute('data-level')!);
+				let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
+				while (nextElem !== undefined) {
+					const childLevel = parseInt(nextElem.getAttribute('data-level')!);
+					// It's not a child, so finish.
+					if (childLevel <= level) {
+						break;
+					}
+					(nextElem.querySelector('input[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
+					nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+				}
+			}
+		}
 		else if (command === 'updateText') {
 			const id = response.id as string;
 			const text = response.text as string;
-			const elem = this.query(`[data-id="${id}"] input`, HTMLInputElement);
+			const elem = this.query(`[data-id="${id}"] input[name="text"]`, HTMLInputElement);
 			if (elem !== undefined) {
 				elem.value = text;
 			}
@@ -489,17 +622,40 @@ export class CheckListEditPage extends Page {
 		const panel = this.query('.edit-check-list-panel', HTMLElement)!;
 		// Show the panel.
 		ShowHide.show(panel);
-		// Populate the title.
-		(panel.querySelector('input[name="title"]') as HTMLInputElement).value = checkListData.title;
-		// Populate the shared users.
-		const usersElem = panel.querySelector('.edit-users') as Element;
-		let html = '';
+		// Populate the users.
+		const form = this.component('edit-check-list-form', ElmForm);
 		for (const user of users) {
-			if (user !== this.app.user) {
-				html += `<ElmCheckBox name="user-${user}" checked="${checkListData.users.includes(user)}">${user}</ElmCheckBox>`;
+			if (this.query(`input[name="user-${user}"]`, HTMLElement) === undefined) {
+				form.insertEntries(`<entry name="user-${user}" type="toggle">${user}</entry>`, 'submit');
 			}
 		}
-		this.setHtml(html, usersElem, this);
+		// Populate the values.
+		const values = new Map<string, string | boolean>();
+		values.set('title', checkListData.title);
+		values.set('removeOnCheck', checkListData.removeOnCheck ? 'yes' : 'no');
+		for (const user of checkListData.users) {
+			values.set(`user-${user}`, true);
+		}
+		form.setValues(values);
+
+		// // Populate the title.
+		// (panel.querySelector('input[name="title"]') as HTMLInputElement).value = checkListData.title;
+		// // Populate the checked button.
+		// if (checkListData.removeOnCheck) {
+		// 	(panel.querySelector('input[name="removeOnCheck"][value="yes"]') as HTMLInputElement).checked = true;
+		// }
+		// else {
+		// 	(panel.querySelector('input[name="removeOnCheck"][value="no"]') as HTMLInputElement).checked = true;
+		// }
+		// Populate the shared users.
+		// const usersElem = panel.querySelector('.edit-users') as Element;
+		// let html = '';
+		// for (const user of users) {
+		// 	if (user !== this.app.user) {
+		// 		html += `<ElmCheckBox name="user-${user}" checked="${checkListData.users.includes(user)}">${user}</ElmCheckBox>`;
+		// 	}
+		// }
+		// this.setHtml(html, usersElem, this);
 	}
 
 	/** Closes a panel. */
@@ -508,34 +664,73 @@ export class CheckListEditPage extends Page {
 	}
 
 	/** Sends the command to edit the check-list properties. */
-	private _editCheckList(): void {
-		const values = FormHelper.getValues(this.query('.edit-check-list-panel', Element)!);
+	private async _editCheckList(): Promise<void> {
+		// Get the inputs.
+		const form = this.component('edit-check-list-form', ElmForm);
 		const id = this.app.router.getValue('id') as string;
-		const title = values.get('title');
+		const values = form.getValues();
+		const title = values.get('title') as string;
+		const removeOnCheck = values.get('removeOnCheck') as string;
 		const users: string[] = [];
 		for (const [name, value] of values) {
 			if (name.startsWith('user-') && value === true) {
 				users.push(name.substring('user-'.length));
 			}
 		}
-		this.app.ws.send({
-			module: 'check-list',
-			command: 'editCheckList',
-			params: {
-				id: id,
-				title: title,
-				users: users
-			}
-		}).then(() => {
-			this.app.router.pushQuery({
-				id: id
-			}, true);
+
+		// Clear the message and disable the submit button.
+		form.setMessage('');
+		form.setEnabled(false);
+
+		try {
+			// Send the command.
+			await this.app.ws.send({
+				module: 'check-list',
+				command: 'editCheckList',
+				params: {
+					id: id,
+					title: title,
+					removeOnCheck: removeOnCheck === 'yes',
+					users: users
+				}
+			});
+
 			this._closePanel('edit-check-list-panel');
-		});
+		}
+		catch (error) {
+			form.setMessage((error as Error).message + '');
+		}
+		form.setEnabled(true);
+
+		// const values = FormHelper.getValues(this.query('.edit-check-list-panel', Element)!);
+		// const id = this.app.router.getValue('id') as string;
+		// const title = values.get('title');
+		// const removeOnCheck = values.get('removeOnCheck') as string;
+		// const users: string[] = [];
+		// for (const [name, value] of values) {
+		// 	if (name.startsWith('user-') && value === true) {
+		// 		users.push(name.substring('user-'.length));
+		// 	}
+		// }
+		// this.app.ws.send({
+		// 	module: 'check-list',
+		// 	command: 'editCheckList',
+		// 	params: {
+		// 		id: id,
+		// 		title: title,
+		// 		removeOnCheck: removeOnCheck === 'yes',
+		// 		users: users
+		// 	}
+		// }).then(() => {
+		// 	this.app.router.pushQuery({
+		// 		id: id
+		// 	}, true);
+		// 	this._closePanel('edit-check-list-panel');
+		// });
 	}
 
 	/** The list of items currently shrunk. */
-	private _shrunkElems!: HTMLElement[];
+	private _shrunkElems: HTMLElement[] = [];
 
 	/** The original level of the dragged item. */
 	private _draggedOrigLevel: number = 0;
@@ -548,6 +743,9 @@ export class CheckListEditPage extends Page {
 
 	/** The initial x-value of the dragged item. */
 	private _refX: number = 0;
+
+	/** Flag if items should be removed when checked. */
+	private _removeOnCheck: boolean = false;
 }
 
 CheckListEditPage.html = /* html */`
@@ -555,17 +753,22 @@ CheckListEditPage.html = /* html */`
 		<h1 class="title"></h1>
 		<div class="items"></div>
 		<div class="toolbar">
-			<button class="left" onclick="_goToCheckListListPage"><icon src="assets/icons/arrow-left.svg" alt="View check lists"></icon></button>
-			<button class="right" onclick="_openEditCheckListPanel"><icon src="assets/icons/wrench.svg" alt="Edit check list"></icon></button>
+			<button class="left icon" onclick="_goToCheckListListPage"><icon src="assets/icons/arrow-left.svg" alt="View check lists"></icon></button>
+			<button class="right icon" onclick="_openEditCheckListPanel"><icon src="assets/icons/wrench.svg" alt="Edit check list"></icon></button>
 		</div>
 		<div class="edit-check-list-panel panel" style="display: none;">
 			<button class="close icon" onclick="_closePanel|edit-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
 			<h1>Edit Check-List</h1>
-			<p>Enter the title of the check-list.</p>
-			<p><input name="title" type="text" value="" width="10rem"></input></p>
-			<p>Who do you want to share it with?</p>
-			<p class="edit-users" class="input"></p>
-			<button class="fullWidth submit" onclick="_editCheckList">Save</button>
+			<ElmForm id="edit-check-list-form">
+				<entry name="title" type="text" width="10rem">Title</entry>
+				<p>Should checking an item remove it?</p>
+				<entry name="removeOnCheck" type="choice">
+					<choice value="no">No</choice>
+					<choice value="yes">Yes</choice>
+				</entry>
+				<p>Shared Users</p>
+				<entry name="submit" type="submit" action="_editCheckList">Edit</entry>
+			</ElmForm>
 		</div>
 	</div>
 	`;
@@ -584,7 +787,7 @@ CheckListEditPage.css = /* css */`
 	}
 	.CheckListEditPage .items {
 		overflow-y: auto;
-		padding: .5rem;
+		padding: .25rem;
 		height: 100%;
 	}
 	.CheckListEditPage .items .DragList p {
@@ -592,23 +795,30 @@ CheckListEditPage.css = /* css */`
 	}
 	.CheckListEditPage .items p {
 		margin: 0;
-		padding: 0 0 .5rem 0;
-		line-height: 2rem;
-		height: 2rem;
+		padding: 0 0 .25rem 0;
+		height: 1.75rem;
+		vertical-align: bottom;
 	}
 	.CheckListEditPage .items p.shrunk {
 		height: 0rem;
 		padding: 0rem;
 		overflow: hidden;
 	}
-	.CheckListEditPage .items p > button.grab {
-		width: 1.5rem;
-		height: 1.5rem;
+	// .CheckListEditPage .items p > button.grab, .CheckListEditPage .items p label {
+	// 	width: 1.5rem;
+	// 	height: 1.5rem;
+	// 	vertical-align: bottom;
+	// 	margin-right: .5rem;
+	// }
+	.CheckListEditPage .grab, .CheckListEditPage .checked {
+		margin-right: .25rem;
 		vertical-align: bottom;
-		margin-right: .5rem;
 	}
-	.CheckListEditPage .items input {
-		width: calc(100% - 2rem);
+	.CheckListEditPage label.checked svg {
+		vertical-align: bottom;
+	}
+	.CheckListEditPage .items input[type="text"] {
+		width: calc(100% - 3.5rem);
 	}
 	.CheckListEditPage .toolbar {
 		background: var(--color1);

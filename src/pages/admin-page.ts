@@ -28,8 +28,8 @@ export class AdminPage extends Page {
 		// Get the inputs.
 		const form = this.component('change-password-form', ElmForm);
 		const values = form.getValues();
-		const user = values.get('change-password-user');
-		const newPassword = values.get('change-password-new-password');
+		const user = values.get('user');
+		const newPassword = values.get('newPassword');
 
 		// Clear the message and disable the submit button.
 		form.setMessage('');
@@ -51,8 +51,8 @@ export class AdminPage extends Page {
 
 			// Clear the form.
 			form.setValues(new Map(Object.entries({
-				'change-password-user': '',
-				'change-password-new-password': ''
+				user: '',
+				newPassword: ''
 			})));
 		}
 		catch (error) {
@@ -65,9 +65,9 @@ export class AdminPage extends Page {
 		// Get the inputs.
 		const form = this.component('create-user-form', ElmForm);
 		const values = form.getValues();
-		const user = values.get('create-user-user');
-		const password = values.get('create-user-password');
-		const groups = (values.get('create-user-groups') as string).split(',');
+		const user = values.get('user');
+		const password = values.get('password');
+		const groups = (values.get('groups') as string).split(',');
 
 		// Trim the groups.
 		for (let i = 0; i < groups.length; i++) {
@@ -95,9 +95,9 @@ export class AdminPage extends Page {
 
 			// Clear the form.
 			form.setValues(new Map(Object.entries({
-				'create-user-user': '',
-				'create-user-password': '',
-				'create-user-groups': ''
+				user: '',
+				password: '',
+				groups: ''
 			})));
 
 			// Update the list of users.
@@ -113,8 +113,8 @@ export class AdminPage extends Page {
 		// Get the inputs.
 		const form = this.component('delete-user-form', ElmForm);
 		const values = form.getValues();
-		const user = values.get('delete-user-user');
-		const verify = values.get('delete-user-verify');
+		const user = values.get('user');
+		const verify = values.get('verify');
 
 		if (verify !== 'DELETE') {
 			form.setMessage('Please enter DELETE to confirm.');
@@ -140,8 +140,8 @@ export class AdminPage extends Page {
 
 			// Clear the form.
 			form.setValues(new Map(Object.entries({
-				'delete-user-user': '',
-				'delete-user-verify': ''
+				user: '',
+				verify: ''
 			})));
 
 			// Update the list of users.
@@ -162,42 +162,43 @@ export class AdminPage extends Page {
 
 AdminPage.html = /* html */`
 	<div>
-		<h1>List of Users</h1>
-		<ul class="user-list">
-		</ul>
-		<h1>Change A User's Password</h1>
-		<ElmForm id="change-password-form">
-			<p>User:</p>
-			<entry name="change-password-user" type="text" width="8rem"></entry>
-			<p>New Password:</p>
-			<entry name="change-password-new-password" type="password" width="8rem"></entry>
-			<entry type="submit" action="_changePassword">Change Password</entry>
-		</ElmForm>
-		<h1>Create A New User</h1>
-		<ElmForm id="create-user-form">
-			<p>User:</p>
-			<entry name="create-user-user" type="text" width="8rem"></entry>
-			<p>Password:</p>
-			<entry name="create-user-password" type="password" width="8rem"></entry>
-			<p>Groups (comma separated)</p>
-			<entry name="create-user-groups" type="text" width="12rem"></entry>
-			<entry type="submit" action="_createUser">Create User</entry>
-		</ElmForm>
-		<h1>Delete A User's Account</h1>
-		<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
-		<ElmForm id="delete-user-form">
-			<p>User:</p>
-			<entry name="delete-user-user" type="text" width="8rem"></entry>
-			<p>Type DELETE to verify that you want to delete the account.</p>
-			<entry name="delete-user-verify" type="text" width="8rem"></entry>
-			<entry type="submit" action="_deleteUser">Delete Account</entry>
-		</ElmForm>
+		<section>
+			<h1>List of Users</h1>
+			<ul class="user-list">
+			</ul>
+		</section>
+		<section>
+			<h1>Change A User's Password</h1>
+			<ElmForm id="change-password-form">
+				<entry name="user" type="text" width="8rem">User</entry>
+				<entry name="newPassword" type="password" width="8rem">New Password</entry>
+				<entry name="submit" type="submit" action="_changePassword">Change Password</entry>
+			</ElmForm>
+		</section>
+		<section>
+			<h1>Create A New User</h1>
+			<ElmForm id="create-user-form">
+				<entry name="user" type="text" width="8rem">User</entry>
+				<entry name="password" type="password" width="8rem">Password</entry>
+				<entry name="groups" type="text" width="12rem">Groups (comma separated)</entry>
+				<entry name="submit" type="submit" action="_createUser">Create User</entry>
+			</ElmForm>
+		</section>
+		<section>
+			<h1>Delete A User's Account</h1>
+			<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
+			<ElmForm id="delete-user-form">
+				<entry name="user" type="text" width="8rem">User</entry>
+				<entry name="verify" type="text" width="8rem">Type DELETE to verify that you want to delete the account.</entry>
+				<entry name="submit" type="submit" action="_deleteUser">Delete Account</entry>
+			</ElmForm>
+		</section>
 	</div>
 	`;
 
 AdminPage.css = /* css */`
 	.AdminPage {
-		padding: .5rem;
+		padding: .25rem;
 	}
 `;
 

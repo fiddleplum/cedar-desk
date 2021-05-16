@@ -251,8 +251,8 @@ CedarDeskApp.css = /* css */`
 		grid-template-columns: 2.5rem 1fr 2.5rem;
 		grid-template-areas: "logo" "title" "status";
 		background: var(--color1);
-		color: var(--color4);
-		fill: var(--color4);
+		color: var(--color5);
+		fill: var(--color5);
 	}
 	.CedarDeskApp .header .logo {
 		margin: .25rem;
@@ -316,7 +316,6 @@ CedarDeskApp.css = /* css */`
 		position: relative;
 		background: var(--color6);
 		color: var(--color1);
-		fill: var(--color1);
 	}
 	.CedarDeskApp .page.fadeOut {
 		opacity: 0;
@@ -324,14 +323,38 @@ CedarDeskApp.css = /* css */`
 	.CedarDeskApp .page.fadeIn {
 		opacity: 1;
 	}
+	section {
+		background: var(--color5);
+		border-radius: .25rem;
+		padding: .25rem;
+	}
+	section + section {
+		margin-top: .25rem;
+	}
+	section button, section .button, section input[type="text"], section input[type="password"] {
+		background: var(--color4);
+	}
+	.panel {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		padding: .25rem;
+		background: var(--color6);
+		overflow: auto;
+	}
+	.panel > :last-child {
+		margin-bottom: .25rem;
+	}
 	h1 {
-		font-size: 1.5rem;
-		margin: 2rem 0 1rem 0;
+		font-size: 1.25rem;
+		margin: .5 0 .5rem 0;
 		font-weight: normal;
 	}
 	h2 {
 		font-size: 1.25rem;
-		margin: .5rem 0 .25rem 0;
+		margin: .25rem 0 .25rem 0;
 		font-weight: normal;
 	}
 	p, ul, ol {
@@ -340,56 +363,75 @@ CedarDeskApp.css = /* css */`
 		font-size: 1rem;
 		line-height: 1.125rem;
 	}
-	.input, .submit {
-		margin-bottom: 1rem;
-	}
-	label {
-		margin-bottom: .5rem;
-		margin-right: .5rem;
-	}
-	button.icon {
-		width: 2rem;
-		height: 2rem;
-		padding: 0;
-	}
-	svg.Icon {
-		width: 1.5rem;
-		height: 1.5rem;
-	}
-	.ElmForm {
-		margin: .5rem 0 0 0;
-	}
-	.ElmForm .entry {
-		display: inline-block;
-		margin: .25rem .5rem .5rem 0;
-	}
-	.ElmForm .entry.choice label {
-		margin-right: .5rem;
-	}
-	h1:first-of-type, h2:first-of-type, p:first-of-type {
+	h1:first-child, h2:first-child, p:first-child, ul:first-child, ol:first-child {
 		margin-top: 0;
 	}
-	button, input, select, input[type=checkbox] + label, input[type=radio] + label {
+	.entry p {
+		margin: 0;
+	}
+
+	.ElmForm p {
+		margin-top: 1rem;
+	}
+	.ElmForm .entry.text, .ElmForm .entry.password {
+		margin: 1rem 0;
+	}
+	.ElmForm .entry.text label, .ElmForm .entry.password label {
+		display: block;
+	}
+	.ElmForm .entry + .entry {
+		margin-top: 1rem;
+	}
+	.ElmForm .entry.toggle, .ElmForm .entry .choice {
+		margin-right: .5rem;
+	}
+	.ElmForm .entry.toggle input:checked + label, .ElmForm .entry .choice input:checked + label {
+		background: var(--color4);
+	}
+	.ElmForm .entry + .message, .ElmForm .message + .submit {
+		margin: 1.5rem 0 0 0;
+	}
+
+	/* Give the nice rounded background for all form elements and buttons. */
+	button, .button, input[type="text"], input[type="password"] {
 		display: inline-block;
+		border: 0;
 		border-radius: .25rem;
 		outline: 0;
-		padding: 0 .5rem;
-		max-width: 100%;
 		background: var(--color5);
-		border: 0;
 		color: var(--color1);
-		fill: var(--color1);
+		padding: .25rem;
 		font-size: 1rem;
-		line-height: calc(1.5rem - 2px);
+		line-height: 1rem;
 		height: 1.5rem;
 	}
-	input[type=checkbox], input[type=radio] {
-		display: none;
+	/* Make icon buttons have no padding, since the svg fills it all up. */
+	button.icon {
+		padding: 0;
 	}
-	input[type=checkbox]:checked + label, input[type=radio]:checked + label {
-		background: var(--color3);
-		transform: scale(1.05);
+	/* Hide the actual checkbox and radio inputs. */
+	input[type="checkbox"], input[type="radio"] {
+		opacity: 0;
+		z-index: -1;
+		position: absolute;
 	}
+	/* Make all svgs small enough to be in square buttons. */
+	button svg, label input[type="checkbox"] ~ svg, label input[type="radio"] ~ svg {
+		width: 1.5rem;
+		height: 1.5rem;
+		fill: var(--color1);
+		stroke: var(--color1);
+	}
+	/* Make unchecked checkboxes have no check. */
+	label input[type="checkbox"] ~ svg {
+		opacity: 0;
+		transition: opacity .25s;
+	}
+	/* Make checked checkboxes have a check. */
+	label input[type="checkbox"]:checked ~ svg {
+		opacity: 1;
+	}
+
 	button:disabled, input:disabled, input[type=checkbox]:disabled + label, input[type=radio]:disabled + label {
 		color: var(--color3);
 	}

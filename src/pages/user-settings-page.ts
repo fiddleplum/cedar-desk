@@ -11,9 +11,9 @@ export class UserSettingsPage extends Page {
 		// Get the inputs.
 		const form = this.component('change-password-form', ElmForm);
 		const values = form.getValues();
-		const oldPassword = values.get('old-password');
-		const newPassword = values.get('new-password');
-		const newPasswordAgain = values.get('new-password-again');
+		const oldPassword = values.get('oldPassword');
+		const newPassword = values.get('newPassword');
+		const newPasswordAgain = values.get('newPasswordAgain');
 
 		// Check if the new passwords match.
 		if (newPassword !== newPasswordAgain) {
@@ -41,9 +41,9 @@ export class UserSettingsPage extends Page {
 
 			// Clear the form.
 			form.setValues(new Map(Object.entries({
-				'old-password': '',
-				'new-password': '',
-				'new-password-again': ''
+				'oldPassword': '',
+				'newPassword': '',
+				'newPasswordAgain': ''
 			})));
 		}
 		catch (error) {
@@ -98,31 +98,30 @@ export class UserSettingsPage extends Page {
 
 UserSettingsPage.html = /* html */`
 	<div>
-		<h1>Change Your Password</h1>
-		<ElmForm id="change-password-form">
-			<p>Old Password:</p>
-			<entry name="old-password" type="password" width="8rem"></entry>
-			<p>New Password:</p>
-			<entry name="new-password" type="password" width="8rem"></entry>
-			<p>Enter It Again:</p>
-			<entry name="new-password-again" type="password" width="8rem"></entry>
-			<entry type="submit" action="_changePassword">Change Password</entry>
-		</ElmForm>
-		<h1>Delete Your Account</h1>
-		<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
-		<ElmForm id="delete-account-form">
-			<p>Password:</p>
-			<entry name="password" type="password" width="8rem"></entry>
-			<p>Type DELETE to verify that you want to delete your account.</p>
-			<entry name="verify" type="text" width="8rem"></entry>
-			<entry type="submit" action="_deleteUser">Delete Account</entry>
-		</ElmForm>
+		<section>
+			<h1>Change Your Password</h1>
+			<ElmForm id="change-password-form">
+				<entry name="oldPassword" type="password" width="8rem">Old Password</entry>
+				<entry name="newPassword" type="password" width="8rem">New Password</entry>
+				<entry name="newPasswordAgain" type="password" width="8rem">Enter It Again</entry>
+				<entry name="submit" type="submit" action="_changePassword">Change Password</entry>
+			</ElmForm>
+		</section>
+		<section>
+			<h1>Delete Your Account</h1>
+			<p>NOTE: ALL INFORMATION WILL BE PERMANENTLY DELETED!</p>
+			<ElmForm id="delete-account-form">
+				<entry name="password" type="password" width="8rem">Password</entry>
+				<entry name="verify" type="text" width="8rem">Type DELETE to verify that you want to delete your account.</entry>
+				<entry name="submit" type="submit" action="_deleteUser">Delete Account</entry>
+			</ElmForm>
+		</section>
 	</div>
 	`;
 
 UserSettingsPage.css = /* css */`
 	.UserSettingsPage {
-		padding: .5rem;
+		padding: .25rem;
 	}
 `;
 

@@ -1,4 +1,4 @@
-import { ShowHide, FormHelper, DragList } from 'elm-app';
+import { ShowHide, DragList, ElmForm } from 'elm-app';
 import { Page } from 'page';
 import { CheckListListData, CheckListData } from 'types/check-list';
 
@@ -18,14 +18,14 @@ export class CheckListPage extends Page {
 			command: 'listCheckLists'
 		}).then((checkListListData: CheckListListData) => {
 			// Add the HTML as a draggable list.
-			let html = '<DragList onReinsert="_checkListListReinserted">';
+			let html = '<DragList onAfterRelease="_onDragListAfterRelease">';
 			for (const checkListListItem of checkListListData) {
 				html += /* html */`
-					<p data-id="${checkListListItem.id}">
+					<div data-id="${checkListListItem.id}">
 						<button class="grab icon"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 						<button class="list" onclick="_viewCheckList|${checkListListItem.id}">${checkListListItem.title}</button>
 						<button class="delete icon" onclick="_openRemoveCheckListPanel|${checkListListItem.id}"><icon src="assets/icons/close.svg" alt="delete"></icon></button>
-					</p>`;
+					</div>`;
 			}
 			html += '</DragList>';
 			const checkListsElem = this.query('.check-lists', Element)!;
@@ -34,13 +34,13 @@ export class CheckListPage extends Page {
 	}
 
 	/** Called when the drag list of check-lists has reinserted a list item. */
-	private _checkListListReinserted(_dragList: DragList, elem: HTMLElement, before: HTMLElement | undefined): void {
+	private _onDragListAfterRelease(_dragList: DragList, _event: string, elem: HTMLElement, before: HTMLElement | undefined, _changed: boolean): void {
 		this.app.ws.send({
 			module: 'check-list',
 			command: 'reinsertCheckList',
 			params: {
-				id: elem.firstElementChild!.getAttribute('data-id')!,
-				beforeId: before !== undefined ? before.firstElementChild!.getAttribute('data-id')! : undefined
+				id: elem.getAttribute('data-id')!,
+				beforeId: before !== undefined ? before.getAttribute('data-id')! : undefined
 			}
 		});
 	}
@@ -57,14 +57,10 @@ export class CheckListPage extends Page {
 			// Show the panel.
 			ShowHide.show(panel);
 			// Setup the shared users elements.
-			const usersElem = panel.querySelector('.add-users') as Element;
-			let html = '';
+			const form = this.component('add-check-list-form', ElmForm);
 			for (const user of users) {
-				if (user !== this.app.user) {
-					html += `<ElmCheckBox name="user-${user}">${user}</ElmCheckBox>`;
-				}
+				form.insertEntries(`<entry name="user-${user}" type="toggle">${user}</entry>`, 'submit');
 			}
-			this.insertHtml(html, usersElem, undefined, this);
 		});
 	}
 
@@ -116,68 +112,106 @@ export class CheckListPage extends Page {
 		}
 	}
 
-	private _addCheckList(): void {
-		const values = FormHelper.getValues(this.query('.add-check-list-panel', Element)!);
-		const title = values.get('title');
+	private async _addCheckList(): Promise<void> {
+		// Get the inputs.
+		const form = this.component('add-check-list-form', ElmForm);
+		const values = form.getValues();
+		const title = values.get('title') as string;
+		const removeOnCheck = values.get('removeOnCheck') as string;
 		const users: string[] = [];
 		for (const [name, value] of values) {
 			if (name.startsWith('user-') && value === true) {
 				users.push(name.substring('user-'.length));
 			}
 		}
-		this.app.ws.send({
-			module: 'check-list',
-			command: 'addCheckList',
-			params: {
-				title: title,
-				users: users
-			}
-		}).then(() => {
+
+		// Clear the message and disable the submit button.
+		form.setMessage('');
+		form.setEnabled(false);
+
+		try {
+			// Send the command.
+			await this.app.ws.send({
+				module: 'check-list',
+				command: 'addCheckList',
+				params: {
+					title: title,
+					removeOnCheck: removeOnCheck === 'yes',
+					users: users
+				}
+			});
+
 			this._closePanel('add-check-list-panel');
 			this._populateCheckListList();
-		});
+		}
+		catch (error) {
+			form.setMessage((error as Error).message + '');
+		}
+		form.setEnabled(true);
 	}
 
-	private _removeCheckList(): void {
-		const values = FormHelper.getValues(this.query('.remove-check-list-panel', Element)!);
+	private async _removeCheckList(): Promise<void> {
+		// Get the inputs.
+		const form = this.component('add-check-list-form', ElmForm);
+		const values = form.getValues();
 		const id = values.get('id') as string;
-		this.app.ws.send({
-			module: 'check-list',
-			command: 'removeCheckList',
-			params: {
-				id: id
-			}
-		}).then(() => {
+
+		// Clear the message and disable the submit button.
+		form.setMessage('');
+		form.setEnabled(false);
+
+		try {
+			// Send the command.
+			await this.app.ws.send({
+				module: 'check-list',
+				command: 'removeCheckList',
+				params: {
+					id: id
+				}
+			});
+
 			this._closePanel('remove-check-list-panel');
 			this._populateCheckListList();
-		});
+		}
+		catch (error) {
+			form.setMessage((error as Error).message + '');
+		}
+		form.setEnabled(true);
 	}
 }
 
 CheckListPage.html = /* html */`
 	<div>
-		<div class="check-lists"></div>
+		<section class="check-lists">
+		</section>
 		<div class="toolbar">
 			<button onclick="_toggleEditCheckListButtons"><icon src="assets/icons/wrench.svg" alt="Edit check-list list"></icon></button>
 			<button onclick="_openAddCheckListPanel"><icon src="assets/icons/plus.svg" alt="Add check list"></icon></button>
 		</div>
 		<div class="add-check-list-panel panel" style="display: none;">
 			<button class="close icon" onclick="_closePanel|add-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
-			<h1>Make a New Check-List</h1>
-			<p>Enter the title of the check-list.</p>
-			<p><input name="title" type="text" value="" width="10rem" class="input"></input></p>
-			<p>Who do you want to share it with?</p>
-			<p class="add-users" class="input"></p>
-			<button class="fullWidth submit" onclick="_addCheckList">Create</button>
+			<h1>New Check-List</h1>
+			<ElmForm id="add-check-list-form">
+				<entry name="title" type="text" width="10rem">Title</entry>
+				<p>Should checking an item remove it?</p>
+				<entry name="removeOnCheck" type="choice">
+					<choice value="no">No</choice>
+					<choice value="yes">Yes</choice>
+				</entry>
+				<p>Shared Users</p>
+				<entry name="submit" type="submit" action="_addCheckList">Create</entry>
+			</ElmForm>
 		</div>
 		<div class="remove-check-list-panel panel" style="display: none;">
 			<button class="close icon" onclick="_closePanel|remove-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
 			<h1>Remove</h1>
-			<p>Are you sure you want to remove this check-list?</p>
-			<p class="title" style="font-weight: bold;"></p>
-			<p class="warning" style="display: none;">This check-list is shared with no one else and so it will be permanently deleted.</p>
-			<input class="id" name="id" type="text" style="display: none;"></input>
-			<p><button class="fullWidth submit" onclick="_removeCheckList">Remove</button></p>
+			<ElmForm id="remove-check-list-form">
+				<input class="id" name="id" type="text" style="display: none;"></input>
+				<p>Are you sure you want to remove this check-list?</p>
+				<p class="title" style="font-weight: bold;"></p>
+				<p class="warning" style="display: none;">This check-list is shared with no one else and so it will be permanently deleted.</p>
+				<entry name="submit" type="submit" action="_removeCheckList">Remove</entry>
+			</ElmForm>
 		</div>
 	</div>
 	`;
@@ -188,55 +222,46 @@ CheckListPage.css = /* css */`
 		grid-template-rows: 1fr 2.5rem;
 		height: 100%;
 	}
-	.CheckListPage > .check-lists {
+	.CheckListPage section {
+		margin: .25rem;
 		overflow-y: auto;
-		padding: .5rem;
 	}
-	.CheckListPage > .check-lists p {
-		margin-bottom: .5rem;
+	.CheckListPage .DragList {
+		height: 100%;
+	}
+	.CheckListPage .check-lists div {
+		margin-bottom: .25rem;
 		text-align: center;
 		line-height: 2rem;
 	}
-	.CheckListPage > .check-lists p > button.list {
-		height: 2rem;
-	}
-	.CheckListPage > .check-lists p > button.grab {
+	.CheckListPage .check-lists div > button.grab {
 		float: left;
 		display: none;
 	}
-	.CheckListPage > .check-lists p > button.delete {
+	.CheckListPage .check-lists div > button.delete {
 		float: right;
 		display: none;
 	}
-	.CheckListPage > .toolbar {
+	.CheckListPage .toolbar {
 		background: var(--color1);
 		color: var(--color4);
 		fill: var(--color4);
 		text-align: right;
 		padding: .25rem;
 	}
-	.CheckListPage > .toolbar button {
+	.CheckListPage .toolbar button {
 		margin-right: .25rem;
 		width: 2rem;
 		height: 2rem;
 		padding: 0;
 	}
-	.CheckListPage > .toolbar button:last-child {
+	.CheckListPage .toolbar button:last-child {
 		margin-right: 0;
 	}
-	.CheckListPage > .toolbar button:active {
+	.CheckListPage .toolbar button:active {
 		background: var(--color3);
 	}
-	.CheckListPage > .panel {
-		position: absolute;
-		left: 0;
-		top: 0;
-		width: 100%;
-		height: 100%;
-		background: var(--color6);
-		padding: .5rem;
-	}
-	.CheckListPage > .panel button.close {
+	.CheckListPage .panel button.close {
 		float: right;
 	}
 	`;

@@ -15,6 +15,7 @@ export type CheckListListData = CheckListListItem[];
 /** A check-list item. */
 export interface CheckListItem extends JSONObject {
 	id: string,
+	checked: boolean,
 	text: string,
 	level: number
 }
@@ -24,5 +25,6 @@ export interface CheckListData extends JSONObject {
 	id: string, // A unique id.
 	title: string, // The title of the list.
 	users: string[], // The list of users that have this check-list in their check-list list.
+	removeOnCheck: boolean,
 	items: CheckListItem[]; // The items in the check-list.
 }
