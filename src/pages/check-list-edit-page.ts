@@ -1,4 +1,4 @@
-import { ShowHide, ElmForm, DragList } from 'elm-app';
+import { ShowHide, ElmForm, DragList, Cookies } from 'elm-app';
 import { Page } from 'page';
 import { JSONObject } from 'pine-lib';
 import { CheckListData } from 'types/check-list';
@@ -11,13 +11,16 @@ export class CheckListEditPage extends Page {
 			this.app.router.replaceQuery({
 				page: 'check-list'
 			}, true);
+			return;
 		}
+		this._checkListId = id;
+
 		// Get the checklist data.
 		this.app.ws.send({
 			module: 'check-list',
 			command: 'getCheckList',
 			params: {
-				id: id
+				id: this._checkListId
 			}
 		}).catch(() => {
 			this.query('.title', HTMLElement)!.innerHTML = 'Check-list Not Found';
@@ -33,7 +36,7 @@ export class CheckListEditPage extends Page {
 					html += /* html */`
 						<p data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
 							<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-							<label class="checked"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+							<label class="checked button icon"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 							<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="${item.text}" />
 						</p>`;
 				}
@@ -42,7 +45,7 @@ export class CheckListEditPage extends Page {
 				html += /* html */`
 					<p data-id="NEW" data-level="0" style="margin-left: 0rem">
 						<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-						<label class="checked"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+						<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 						<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput"></input>
 					</p>`;
 			}
@@ -53,9 +56,6 @@ export class CheckListEditPage extends Page {
 				const newElem = this.query('p[data-id="NEW"]', HTMLElement)!;
 				this._sendAddItemCommand(newElem);
 			}
-			// Add padding so that the bottom element can drag further down.
-			const viewHeight = this.query('.items', HTMLElement)!.getBoundingClientRect().height;
-			this.query('.DragList', HTMLElement)!.style.paddingBottom = `calc(${viewHeight}px - 2rem)`;
 			// Register as a websocket handler.
 			this.app.ws.registerHandler('check-list', this._responseHandler.bind(this));
 			// Let the server know we want to receive check-list updates.
@@ -63,7 +63,7 @@ export class CheckListEditPage extends Page {
 				module: 'check-list',
 				command: 'onCheckList',
 				params: {
-					checkListId: this.app.router.getValue('id')!
+					checkListId: this._checkListId
 				}
 			});
 		});
@@ -86,7 +86,7 @@ export class CheckListEditPage extends Page {
 			module: 'check-list',
 			command: 'offCheckList',
 			params: {
-				checkListId: this.app.router.getValue('id')!
+				checkListId: this._checkListId
 			}
 		});
 		window.clearInterval(this._intervalId);
@@ -207,7 +207,6 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an addItem command. */
 	private _sendAddItemCommand(elem: Element): void {
-		const checkListId = this.app.router.getValue('id')!;
 		const checkedInputElem = elem.querySelector('input[name="checked"]') as HTMLInputElement;
 		const textInputElem = elem.querySelector('input[name="text"]') as HTMLInputElement;
 		const checked = checkedInputElem.checked;
@@ -219,7 +218,7 @@ export class CheckListEditPage extends Page {
 			module: 'check-list',
 			command: 'addItem',
 			params: {
-				checkListId: checkListId,
+				checkListId: this._checkListId,
 				checked: checked,
 				text: text,
 				level: level,
@@ -232,7 +231,6 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an updateChecked command. */
 	private _sendUpdateCheckedCommand(elem: Element): void {
-		const checkListId = this.app.router.getValue('id')!;
 		const checkedInputElem = elem.querySelector('input[name="checked"]') as HTMLInputElement;
 		const id = elem.getAttribute('data-id')!;
 		const checked = checkedInputElem.checked;
@@ -240,7 +238,7 @@ export class CheckListEditPage extends Page {
 			module: 'check-list',
 			command: 'updateChecked',
 			params: {
-				checkListId: checkListId,
+				checkListId: this._checkListId,
 				id: id,
 				checked: checked
 			}
@@ -251,7 +249,6 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an updateText command. */
 	private _sendUpdateTextCommand(elem: Element): void {
-		const checkListId = this.app.router.getValue('id')!;
 		const textInputElem = elem.querySelector('input[name="text"]') as HTMLInputElement;
 		const id = elem.getAttribute('data-id')!;
 		const text = textInputElem.value;
@@ -259,7 +256,7 @@ export class CheckListEditPage extends Page {
 			module: 'check-list',
 			command: 'updateText',
 			params: {
-				checkListId: checkListId,
+				checkListId: this._checkListId,
 				id: id,
 				text: text
 			}
@@ -270,14 +267,13 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an update level command. */
 	private _sendUpdateLevelCommand(elem: Element): void {
-		const checkListId = this.app.router.getValue('id')!;
 		const id = elem.getAttribute('data-id')!;
 		const level = parseInt(elem.getAttribute('data-level')!);
 		this.app.ws.send({
 			module: 'check-list',
 			command: 'updateLevel',
 			params: {
-				checkListId: checkListId,
+				checkListId: this._checkListId,
 				id: id,
 				level: level
 			}
@@ -286,13 +282,12 @@ export class CheckListEditPage extends Page {
 
 	/** Sends a remove item command. */
 	private _sendRemoveItemCommand(elem: Element): void {
-		const checkListId = this.app.router.getValue('id')!;
 		const id = elem.getAttribute('data-id')!;
 		this.app.ws.send({
 			module: 'check-list',
 			command: 'removeItem',
 			params: {
-				checkListId: checkListId,
+				checkListId: this._checkListId,
 				id: id
 			}
 		});
@@ -300,13 +295,12 @@ export class CheckListEditPage extends Page {
 
 	/** Sends a reinsert item command. */
 	private _sendReinsertItemCommand(elem: Element, beforeElem: Element | undefined): void {
-		const checkListId = this.app.router.getValue('id')!;
 		const id = elem.getAttribute('data-id')!;
 		this.app.ws.send({
 			module: 'check-list',
 			command: 'reinsertItem',
 			params: {
-				checkListId: checkListId,
+				checkListId: this._checkListId,
 				id: id,
 				beforeId: beforeElem?.getAttribute('data-id') ?? undefined
 			}
@@ -325,7 +319,7 @@ export class CheckListEditPage extends Page {
 			const html = /* html */`
 				<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
 					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<label class="checked"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="" />
 				</p>`;
 			dragList.insertItems(html, elem.nextElementSibling ? elem.nextElementSibling as HTMLElement : undefined);
@@ -502,7 +496,7 @@ export class CheckListEditPage extends Page {
 			const html = /* html */`
 				<p data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
 					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<label class="checked"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
+					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="${text}" />
 				</p>`;
 			dragList.insertItems(html, beforeElem);
@@ -608,7 +602,7 @@ export class CheckListEditPage extends Page {
 			module: 'check-list',
 			command: 'getCheckList',
 			params: {
-				id: this.app.router.getValue('id')
+				id: this._checkListId
 			}
 		});
 		// Populate the shared users.
@@ -624,8 +618,9 @@ export class CheckListEditPage extends Page {
 		ShowHide.show(panel);
 		// Populate the users.
 		const form = this.component('edit-check-list-form', ElmForm);
+		const thisUser = Cookies.get('user');
 		for (const user of users) {
-			if (this.query(`input[name="user-${user}"]`, HTMLElement) === undefined) {
+			if (this.query(`input[name="user-${user}"]`, HTMLElement) === undefined && user !== thisUser) {
 				form.insertEntries(`<entry name="user-${user}" type="toggle">${user}</entry>`, 'submit');
 			}
 		}
@@ -634,28 +629,11 @@ export class CheckListEditPage extends Page {
 		values.set('title', checkListData.title);
 		values.set('removeOnCheck', checkListData.removeOnCheck ? 'yes' : 'no');
 		for (const user of checkListData.users) {
-			values.set(`user-${user}`, true);
+			if (user !== thisUser) {
+				values.set(`user-${user}`, true);
+			}
 		}
 		form.setValues(values);
-
-		// // Populate the title.
-		// (panel.querySelector('input[name="title"]') as HTMLInputElement).value = checkListData.title;
-		// // Populate the checked button.
-		// if (checkListData.removeOnCheck) {
-		// 	(panel.querySelector('input[name="removeOnCheck"][value="yes"]') as HTMLInputElement).checked = true;
-		// }
-		// else {
-		// 	(panel.querySelector('input[name="removeOnCheck"][value="no"]') as HTMLInputElement).checked = true;
-		// }
-		// Populate the shared users.
-		// const usersElem = panel.querySelector('.edit-users') as Element;
-		// let html = '';
-		// for (const user of users) {
-		// 	if (user !== this.app.user) {
-		// 		html += `<ElmCheckBox name="user-${user}" checked="${checkListData.users.includes(user)}">${user}</ElmCheckBox>`;
-		// 	}
-		// }
-		// this.setHtml(html, usersElem, this);
 	}
 
 	/** Closes a panel. */
@@ -667,7 +645,7 @@ export class CheckListEditPage extends Page {
 	private async _editCheckList(): Promise<void> {
 		// Get the inputs.
 		const form = this.component('edit-check-list-form', ElmForm);
-		const id = this.app.router.getValue('id') as string;
+		const id = this._checkListId;
 		const values = form.getValues();
 		const title = values.get('title') as string;
 		const removeOnCheck = values.get('removeOnCheck') as string;
@@ -701,33 +679,10 @@ export class CheckListEditPage extends Page {
 			form.setMessage((error as Error).message + '');
 		}
 		form.setEnabled(true);
-
-		// const values = FormHelper.getValues(this.query('.edit-check-list-panel', Element)!);
-		// const id = this.app.router.getValue('id') as string;
-		// const title = values.get('title');
-		// const removeOnCheck = values.get('removeOnCheck') as string;
-		// const users: string[] = [];
-		// for (const [name, value] of values) {
-		// 	if (name.startsWith('user-') && value === true) {
-		// 		users.push(name.substring('user-'.length));
-		// 	}
-		// }
-		// this.app.ws.send({
-		// 	module: 'check-list',
-		// 	command: 'editCheckList',
-		// 	params: {
-		// 		id: id,
-		// 		title: title,
-		// 		removeOnCheck: removeOnCheck === 'yes',
-		// 		users: users
-		// 	}
-		// }).then(() => {
-		// 	this.app.router.pushQuery({
-		// 		id: id
-		// 	}, true);
-		// 	this._closePanel('edit-check-list-panel');
-		// });
 	}
+
+	/** The check-list id. */
+	private _checkListId: string = '';
 
 	/** The list of items currently shrunk. */
 	private _shrunkElems: HTMLElement[] = [];
@@ -767,7 +722,7 @@ CheckListEditPage.html = /* html */`
 					<choice value="yes">Yes</choice>
 				</entry>
 				<p>Shared Users</p>
-				<entry name="submit" type="submit" action="_editCheckList">Edit</entry>
+				<entry name="submit" type="submit" action="_editCheckList">Save Changes</entry>
 			</ElmForm>
 		</div>
 	</div>
@@ -804,13 +759,10 @@ CheckListEditPage.css = /* css */`
 		padding: 0rem;
 		overflow: hidden;
 	}
-	// .CheckListEditPage .items p > button.grab, .CheckListEditPage .items p label {
-	// 	width: 1.5rem;
-	// 	height: 1.5rem;
-	// 	vertical-align: bottom;
-	// 	margin-right: .5rem;
-	// }
 	.CheckListEditPage .grab, .CheckListEditPage .checked {
+		display: inline-block;
+		width: 1.5rem;
+		height: 1.5rem;
 		margin-right: .25rem;
 		vertical-align: bottom;
 	}

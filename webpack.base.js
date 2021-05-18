@@ -39,10 +39,10 @@ module.exports = {
 				from: 'src/config.js',
 				noErrorOnMissing: true
 			}, {
-				from: 'src/icon.svg',
+				from: 'src/logo.svg',
 				noErrorOnMissing: true
 			}, {
-				from: 'src/manifest.webmanifest',
+				from: 'src/manifest.json',
 				noErrorOnMissing: true
 			}, {
 				from: 'src/assets',

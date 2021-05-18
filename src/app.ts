@@ -406,7 +406,7 @@ CedarDeskApp.css = /* css */`
 		height: 1.5rem;
 	}
 	/* Make icon buttons have no padding, since the svg fills it all up. */
-	button.icon {
+	button.icon, .button.icon {
 		padding: 0;
 	}
 	/* Hide the actual checkbox and radio inputs. */

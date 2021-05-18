@@ -1,4 +1,4 @@
-import { ShowHide, DragList, ElmForm } from 'elm-app';
+import { ShowHide, DragList, ElmForm, Cookies } from 'elm-app';
 import { Page } from 'page';
 import { CheckListListData, CheckListData } from 'types/check-list';
 
@@ -58,8 +58,11 @@ export class CheckListPage extends Page {
 			ShowHide.show(panel);
 			// Setup the shared users elements.
 			const form = this.component('add-check-list-form', ElmForm);
+			const thisUser = Cookies.get('user');
 			for (const user of users) {
-				form.insertEntries(`<entry name="user-${user}" type="toggle">${user}</entry>`, 'submit');
+				if (this.query(`input[name="user-${user}"]`, HTMLElement) === undefined && user !== thisUser) {
+					form.insertEntries(`<entry name="user-${user}" type="toggle">${user}</entry>`, 'submit');
+				}
 			}
 		});
 	}
@@ -80,8 +83,8 @@ export class CheckListPage extends Page {
 			const titleElem = panel.querySelector('.title')!;
 			titleElem.innerHTML = checkListData.title;
 			// Set the check-list id.
-			const idElem = panel.querySelector('.id') as HTMLInputElement;
-			idElem.value = id;
+			const form = this.component('remove-check-list-form', ElmForm);
+			form.setValues(new Map([['id', id]]));
 			// Toggle the permanently delete message, if needed.
 			const warning = panel.querySelector('.warning') as HTMLElement;
 			if (checkListData.users.length === 1) {
@@ -152,7 +155,7 @@ export class CheckListPage extends Page {
 
 	private async _removeCheckList(): Promise<void> {
 		// Get the inputs.
-		const form = this.component('add-check-list-form', ElmForm);
+		const form = this.component('remove-check-list-form', ElmForm);
 		const values = form.getValues();
 		const id = values.get('id') as string;
 
@@ -206,7 +209,7 @@ CheckListPage.html = /* html */`
 			<button class="close icon" onclick="_closePanel|remove-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
 			<h1>Remove</h1>
 			<ElmForm id="remove-check-list-form">
-				<input class="id" name="id" type="text" style="display: none;"></input>
+				<entry name="id" type="hidden"></entry>
 				<p>Are you sure you want to remove this check-list?</p>
 				<p class="title" style="font-weight: bold;"></p>
 				<p class="warning" style="display: none;">This check-list is shared with no one else and so it will be permanently deleted.</p>
@@ -225,9 +228,6 @@ CheckListPage.css = /* css */`
 	.CheckListPage section {
 		margin: .25rem;
 		overflow-y: auto;
-	}
-	.CheckListPage .DragList {
-		height: 100%;
 	}
 	.CheckListPage .check-lists div {
 		margin-bottom: .25rem;
