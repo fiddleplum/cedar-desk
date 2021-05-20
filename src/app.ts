@@ -331,7 +331,7 @@ CedarDeskApp.css = /* css */`
 	section + section {
 		margin-top: .25rem;
 	}
-	section button, section .button, section input[type="text"], section input[type="password"] {
+	section button, section .button, section input[type="text"], section input[type="password"], .text {
 		background: var(--color4);
 	}
 	.panel {
@@ -393,7 +393,7 @@ CedarDeskApp.css = /* css */`
 	}
 
 	/* Give the nice rounded background for all form elements and buttons. */
-	button, .button, input[type="text"], input[type="password"] {
+	button, .button, input[type="text"], input[type="password"], .text, .textarea-grower::after {
 		display: inline-block;
 		border: 0;
 		border-radius: .25rem;
@@ -401,9 +401,9 @@ CedarDeskApp.css = /* css */`
 		background: var(--color5);
 		color: var(--color1);
 		padding: .25rem;
+		font-family: inherit;
 		font-size: 1rem;
 		line-height: 1rem;
-		height: 1.5rem;
 	}
 	/* Make icon buttons have no padding, since the svg fills it all up. */
 	button.icon, .button.icon {

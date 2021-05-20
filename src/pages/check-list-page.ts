@@ -21,7 +21,7 @@ export class CheckListPage extends Page {
 			let html = '<DragList onAfterRelease="_onDragListAfterRelease">';
 			for (const checkListListItem of checkListListData) {
 				html += /* html */`
-					<div data-id="${checkListListItem.id}">
+					<div class="item" data-id="${checkListListItem.id}">
 						<button class="grab icon"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 						<button class="list" onclick="_viewCheckList|${checkListListItem.id}">${checkListListItem.title}</button>
 						<button class="delete icon" onclick="_openRemoveCheckListPanel|${checkListListItem.id}"><icon src="assets/icons/close.svg" alt="delete"></icon></button>
@@ -229,7 +229,7 @@ CheckListPage.css = /* css */`
 		margin: .25rem;
 		overflow-y: auto;
 	}
-	.CheckListPage .check-lists div {
+	.CheckListPage .check-lists .item {
 		margin-bottom: .25rem;
 		text-align: center;
 		line-height: 2rem;

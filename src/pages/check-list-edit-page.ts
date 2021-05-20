@@ -30,14 +30,16 @@ export class CheckListEditPage extends Page {
 			// Set the remove-on-check flag.
 			this._removeOnCheck = checkListData.removeOnCheck;
 			// Set the drag list.
-			let html = '<DragList id="list" onBeforeGrab="_onItemBeforeGrab" onAfterDrag="_onItemAfterDrag" onAfterRelease="_onItemAfterRelease">';
+			let html = '<DragList id="list" onAfterGrab="_onItemAfterGrab" onAfterDrag="_onItemAfterDrag" onAfterRelease="_onItemAfterRelease">';
 			if (checkListData.items.length !== 0) {
 				for (const item of checkListData.items) {
 					html += /* html */`
 						<p data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
 							<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 							<label class="checked button icon"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
-							<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="${item.text}" />
+							<span class="textarea-grower" data-replicated-value="${item.text}">
+								<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${item.text}</textarea>
+							</span>
 						</p>`;
 				}
 			}
@@ -46,14 +48,16 @@ export class CheckListEditPage extends Page {
 					<p data-id="NEW" data-level="0" style="margin-left: 0rem">
 						<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 						<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
-						<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput"></input>
+						<span class="textarea-grower" data-replicated-value="">
+							<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
+						</span>
 					</p>`;
 			}
 			html += `</DragList>`;
 			this.setHtml(html, this.query('.items', Element)!, this);
 			// Save the new element if it's the only new one.
 			if (checkListData.items.length === 0) {
-				const newElem = this.query('p[data-id="NEW"]', HTMLElement)!;
+				const newElem = this.query('[data-id="NEW"]', HTMLElement)!;
 				this._sendAddItemCommand(newElem);
 			}
 			// Register as a websocket handler.
@@ -93,48 +97,50 @@ export class CheckListEditPage extends Page {
 		super.destroy();
 	}
 
-	/** Called just before an item will be dragged. */
-	private _onItemBeforeGrab(_dragList: DragList, _event: string, elem: HTMLElement, event: MouseEvent | TouchEvent): void {
+	/** Called just after an item will be dragged. */
+	private _onItemAfterGrab(_dragList: DragList, _event: string, elem: HTMLElement, beforeElem: HTMLElement | undefined, event: MouseEvent | TouchEvent): void {
 		// Shrink the "child" items below the elem.
 		this._draggedOrigLevel = Number.parseInt(elem.getAttribute('data-level')!);
-		let nextElem = elem.nextElementSibling as HTMLElement | null;
-		this._shrunkElems = [];
-		while (nextElem !== null) {
-			const nextLevel = Number.parseInt(nextElem.getAttribute('data-level')!);
-			if (nextLevel >= this._draggedOrigLevel + 1) {
-				nextElem.classList.add('shrunk');
-				this._shrunkElems.push(nextElem);
+		let nextElem = beforeElem;
+		this._childrenOfDraggedElem = [];
+		while (nextElem !== undefined) {
+			const nextElemLevel = Number.parseInt(nextElem.getAttribute('data-level')!);
+			if (nextElemLevel >= this._draggedOrigLevel + 1) {
+				this._childrenOfDraggedElem.push(nextElem);
 			}
 			else {
 				break;
 			}
-			nextElem = nextElem.nextElementSibling as HTMLElement | null;
+			nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
 		}
 		// Get the x value of the cursor.
 		this._refX = this._getX(event);
+		// Make the children of the dragged elem shrunk.
+		if (this._childrenOfDraggedElem.length > 0 && !this._childrenOfDraggedElem[0].classList.contains('shrunk')) {
+			for (const child of this._childrenOfDraggedElem) {
+				const childBounds = child.getBoundingClientRect();
+				child.style.height = `${childBounds.height}px`;
+				// Add the shrunk class. In a setTimeout to enable transitions.
+				setTimeout(() => {
+					child.style.height = '0';
+					child.style.padding = '0';
+					child.style.overflow = 'hidden';
+				}, 0);
+			}
+		}
 	}
 
 	/** Called just after a drag. */
 	private _onItemAfterDrag(_dragList: DragList, _event: string, elem: HTMLElement, event: MouseEvent | TouchEvent, beforeElem: HTMLElement | undefined): void {
-		// Update the scroll so that the item stays in view.
-		const elemBounds = elem.getBoundingClientRect();
-		const container = this.query('.items', HTMLElement)!;
-		const containerBounds = container.getBoundingClientRect();
-		if (containerBounds.top > elemBounds.top - elemBounds.height) {
-			container.scrollTop += elemBounds.top - elemBounds.height - containerBounds.top;
-		}
-		else if (containerBounds.bottom < elemBounds.bottom + elemBounds.height) {
-			container.scrollTop += elemBounds.bottom + elemBounds.height - containerBounds.bottom;
-		}
 		// Get the previous element of where the element would be placed.
-		let prevElem;
+		let prevElem: HTMLElement | undefined;
 		if (beforeElem !== undefined) {
 			prevElem = beforeElem.previousElementSibling as HTMLElement | null ?? undefined;
 		}
 		else {
-			prevElem = elem.parentElement!.lastElementChild as HTMLElement | null ?? undefined;
+			prevElem = elem.parentElement!.parentElement!.lastElementChild!.lastElementChild as HTMLElement | null ?? undefined;
 		}
-		while (prevElem !== undefined && this._shrunkElems.includes(prevElem)) {
+		while (prevElem !== undefined && this._childrenOfDraggedElem.includes(prevElem)) {
 			prevElem = prevElem.previousElementSibling as HTMLElement | null ?? undefined;
 		}
 		if (prevElem === elem) {
@@ -169,27 +175,25 @@ export class CheckListEditPage extends Page {
 	}
 
 	/** Called just after the drag is released. */
-	private _onItemAfterRelease(_dragList: DragList, _event: string, elem: HTMLElement, beforeElem: HTMLElement | undefined, changed: boolean): void {
+	private _onItemAfterRelease(_dragList: DragList, _event: string, elem: HTMLElement, beforeElem: HTMLElement | undefined): void {
 		// Reinsert the shrunk elems to be after the drag element.
-		if (changed) {
-			for (const shrunkElem of this._shrunkElems) {
-				elem.parentElement!.insertBefore(shrunkElem, beforeElem ?? null);
-			}
+		for (const child of this._childrenOfDraggedElem) {
+			elem.parentElement!.insertBefore(child, beforeElem ?? null);
 		}
 		// Remove the shrunk class. Use timeout so the transition happens.
-		setTimeout(((shrunkElems: HTMLElement[]): void => {
-			for (const shrunkElem of shrunkElems) {
-				shrunkElem.classList.remove('shrunk');
+		setTimeout(((childrenOfDraggedElem: HTMLElement[]): void => {
+			for (const child of childrenOfDraggedElem) {
+				child.style.height = '';
+				child.style.padding = '';
+				child.style.overflow = '';
 			}
-		}).bind(undefined, this._shrunkElems), 100);
+		}).bind(undefined, this._childrenOfDraggedElem), 0);
 		// Clean up the shrunk elements.
-		this._shrunkElems = [];
+		this._childrenOfDraggedElem = [];
 		// Send the update level command.
 		this._sendUpdateLevelCommand(elem);
-		if (changed) {
-			// Send the reinsert item command.
-			this._sendReinsertItemCommand(elem, beforeElem);
-		}
+		// Send the reinsert item command.
+		this._sendReinsertItemCommand(elem, beforeElem);
 	}
 
 	/** Returns the x value of the event. */
@@ -207,8 +211,8 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an addItem command. */
 	private _sendAddItemCommand(elem: Element): void {
-		const checkedInputElem = elem.querySelector('input[name="checked"]') as HTMLInputElement;
-		const textInputElem = elem.querySelector('input[name="text"]') as HTMLInputElement;
+		const checkedInputElem = elem.querySelector('[name="checked"]') as HTMLInputElement;
+		const textInputElem = elem.querySelector('[name="text"]') as HTMLTextAreaElement;
 		const checked = checkedInputElem.checked;
 		const text = textInputElem.value;
 		const level = parseInt(elem.getAttribute('data-level')!);
@@ -231,7 +235,7 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an updateChecked command. */
 	private _sendUpdateCheckedCommand(elem: Element): void {
-		const checkedInputElem = elem.querySelector('input[name="checked"]') as HTMLInputElement;
+		const checkedInputElem = elem.querySelector('[name="checked"]') as HTMLInputElement;
 		const id = elem.getAttribute('data-id')!;
 		const checked = checkedInputElem.checked;
 		this.app.ws.send({
@@ -249,7 +253,7 @@ export class CheckListEditPage extends Page {
 
 	/** Sends an updateText command. */
 	private _sendUpdateTextCommand(elem: Element): void {
-		const textInputElem = elem.querySelector('input[name="text"]') as HTMLInputElement;
+		const textInputElem = elem.querySelector('[name="text"]') as HTMLTextAreaElement;
 		const id = elem.getAttribute('data-id')!;
 		const text = textInputElem.value;
 		this.app.ws.send({
@@ -310,86 +314,88 @@ export class CheckListEditPage extends Page {
 	/** When a key was pressed while focused on one of the items. */
 	private _onKeyDown(event: KeyboardEvent): void {
 		// Get the relative item and its input.
-		const inputElem = event.target as HTMLInputElement;
-		const elem = inputElem.parentElement as HTMLParagraphElement;
+		const textAreaElem = event.target as HTMLTextAreaElement;
+		const itemElem = textAreaElem.parentElement!.parentElement as HTMLParagraphElement;
 		if (event.key === 'Enter') {
 			// Create new item below this one at the same level.
 			const dragList = this.component('list', DragList);
-			const itemLevel = elem.getAttribute('data-level');
+			const itemLevel = itemElem.getAttribute('data-level');
 			const html = /* html */`
 				<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
 					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
-					<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="" />
+					<span class="textarea-grower" data-replicated-value="">
+						<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
+					</span>
 				</p>`;
-			dragList.insertItems(html, elem.nextElementSibling ? elem.nextElementSibling as HTMLElement : undefined);
+			dragList.insertItems(html, itemElem.nextElementSibling ? itemElem.nextElementSibling as HTMLElement : undefined);
 			// Add any text to the right of the cursor, to the new input.
-			const newElem = elem.nextElementSibling as HTMLElement;
-			const newInputElem = newElem.querySelector('input[name="text"]') as HTMLInputElement;
-			newInputElem.value = inputElem.value.substring(inputElem.selectionEnd!);
+			const newItemElem = itemElem.nextElementSibling as HTMLElement;
+			const newTextAreaElem = newItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
+			newTextAreaElem.value = textAreaElem.value.substring(textAreaElem.selectionEnd);
 			// Remove any text to the right of the cursor from the old input.
-			inputElem.value = inputElem.value.substring(0, inputElem.selectionStart!);
+			textAreaElem.value = textAreaElem.value.substring(0, textAreaElem.selectionStart);
 			// Save both items.
-			this._sendUpdateTextCommand(elem);
-			this._sendAddItemCommand(newElem);
+			this._sendUpdateTextCommand(itemElem);
+			this._sendAddItemCommand(newItemElem);
 			// Move focus to new item.
-			newInputElem.focus();
-			newInputElem.setSelectionRange(0, 0);
+			newTextAreaElem.focus();
+			newTextAreaElem.setSelectionRange(0, 0);
 		}
 		else if (event.key === 'Backspace' || event.key === 'Delete') {
 			// If it is already blank,
 			if (event.key === 'Backspace'
-					&& inputElem.selectionStart === 0 && inputElem.selectionEnd === 0
-					&& elem.previousElementSibling !== null) {
+					&& textAreaElem.selectionStart === 0 && textAreaElem.selectionEnd === 0
+					&& itemElem.previousElementSibling !== null) {
 				// Append any text in the input to the prev item.
-				const prevElem = elem.previousElementSibling as HTMLElement;
-				const prevInput = prevElem.querySelector('input[name="text"]') as HTMLInputElement;
-				const prevInputValueLength = prevInput.value.length;
-				prevInput.value = prevInput.value + inputElem.value;
+				const prevItemElem = itemElem.previousElementSibling as HTMLElement;
+				const prevTextAreaElem = prevItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
+				const prevTextAreaElemLength = prevTextAreaElem.value.length;
+				prevTextAreaElem.value = prevTextAreaElem.value + textAreaElem.value;
 				// Update the prev item.
-				this._sendUpdateTextCommand(prevElem);
+				this._sendUpdateTextCommand(prevItemElem);
 				// Focus on the end of the previous item.
-				prevInput.focus();
-				prevInput.setSelectionRange(prevInputValueLength, prevInputValueLength);
+				prevTextAreaElem.focus();
+				prevTextAreaElem.setSelectionRange(prevTextAreaElemLength, prevTextAreaElemLength);
 				// Send the remove item command.
-				this._sendRemoveItemCommand(elem);
+				this._sendRemoveItemCommand(itemElem);
 				// Remove the item from the list.
 				const dragList = this.component('list', DragList);
-				dragList.removeItem(elem);
+				dragList.removeItem(itemElem);
 				// Make the event not do an actual backspace.
 				event.preventDefault();
 			}
 			else if (event.key === 'Delete'
-					&& inputElem.selectionStart === inputElem.value.length && inputElem.selectionEnd === inputElem.value.length
-					&& elem.nextElementSibling !== null) {
+					&& textAreaElem.selectionStart === textAreaElem.value.length && textAreaElem.selectionEnd === textAreaElem.value.length
+					&& itemElem.nextElementSibling !== null) {
 				// Prepend any text in the input to the next item.
-				const nextElem = elem.nextElementSibling as HTMLElement;
-				const nextInput = nextElem.querySelector('input[name="text"]') as HTMLInputElement;
-				nextInput.value = inputElem.value + nextInput.value;
+				const nextItemElem = itemElem.nextElementSibling as HTMLElement;
+				const nextTextAreaElem = nextItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
+				nextTextAreaElem.value = textAreaElem.value + nextTextAreaElem.value;
 				// Focus on the end of the next item.
-				nextInput.focus();
-				nextInput.setSelectionRange(inputElem.value.length, inputElem.value.length);
+				nextTextAreaElem.focus();
+				nextTextAreaElem.setSelectionRange(textAreaElem.value.length, textAreaElem.value.length);
 				// Update the next item.
-				this._sendUpdateTextCommand(nextElem);
+				this._sendUpdateTextCommand(nextItemElem);
 				// Send the remove item command.
-				this._sendRemoveItemCommand(elem);
+				this._sendRemoveItemCommand(itemElem);
 				// Remove the item from the list.
 				const dragList = this.component('list', DragList);
-				dragList.removeItem(elem);
+				dragList.removeItem(itemElem);
 				// Make the event not do an actual backspace.
 				event.preventDefault();
 			}
 		}
 		else if (event.key === '[' && event.ctrlKey) {
-			const changed = this._shiftItem(elem, elem.previousElementSibling as HTMLElement | null ?? undefined, true, -1);
+			const changed = this._shiftItem(itemElem, itemElem.previousElementSibling as HTMLElement | null ?? undefined, true, -1);
 			if (changed !== 0) {
-				this._sendUpdateLevelCommand(elem);
+				this._sendUpdateLevelCommand(itemElem);
 			}
 		}
 		else if (event.key === ']' && event.ctrlKey) {
-			const changed = this._shiftItem(elem, elem.previousElementSibling as HTMLElement | null ?? undefined, true, +1);
+			const changed = this._shiftItem(itemElem, itemElem.previousElementSibling as HTMLElement | null ?? undefined, true, +1);
 			if (changed !== 0) {
-				this._sendUpdateLevelCommand(elem);
+				this._sendUpdateLevelCommand(itemElem);
 			}
 		}
 	}
@@ -408,9 +414,9 @@ export class CheckListEditPage extends Page {
 			elem.style.marginLeft = `${newLevel}rem`;
 			// Move all children the same amount.
 			if (includeChildren) {
-				if (this._shrunkElems.length > 0) {
-					for (let i = 0; i < this._shrunkElems.length; i++) {
-						const childElem = this._shrunkElems[i];
+				if (this._childrenOfDraggedElem.length > 0) {
+					for (let i = 0; i < this._childrenOfDraggedElem.length; i++) {
+						const childElem = this._childrenOfDraggedElem[i];
 						const newChildLevel = parseInt(childElem.getAttribute('data-level')!) + newLevel - level;
 						childElem.setAttribute('data-level', `${newChildLevel}`);
 						childElem.style.marginLeft = `${newChildLevel}rem`;
@@ -438,7 +444,9 @@ export class CheckListEditPage extends Page {
 
 	/** When one of the items text values have changed. */
 	private _onInput(event: InputEvent): void {
-		this._changedElems.add((event.target as HTMLInputElement).parentElement!);
+		const textAreaElem = event.target as HTMLTextAreaElement;
+		this._changedElems.add(textAreaElem.parentElement!.parentElement!);
+		(textAreaElem.parentNode as HTMLElement).dataset.replicatedValue = textAreaElem.value;
 	}
 
 	/** When one of the items is checked. */
@@ -473,7 +481,7 @@ export class CheckListEditPage extends Page {
 				if (childLevel <= level) {
 					break;
 				}
-				(nextElem.querySelector('input[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
+				(nextElem.querySelector('[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
 				nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
 			}
 		}
@@ -497,7 +505,9 @@ export class CheckListEditPage extends Page {
 				<p data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
 					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
-					<input class="text" name="text" type="text" onkeydown="_onKeyDown" oninput="_onInput" value="${text}" />
+					<span class="textarea-grower" data-replicated-value="${text}">
+						<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${text}</textarea>
+					</span>
 				</p>`;
 			dragList.insertItems(html, beforeElem);
 		}
@@ -534,7 +544,7 @@ export class CheckListEditPage extends Page {
 				}
 			}
 			else {
-				const checkedInputElem = elem.querySelector(`input[name="checked"]`) as HTMLInputElement;
+				const checkedInputElem = elem.querySelector('[name="checked"]') as HTMLInputElement;
 				checkedInputElem.checked = checked;
 				// Check the children too.
 				const level = parseInt(elem.getAttribute('data-level')!);
@@ -545,7 +555,7 @@ export class CheckListEditPage extends Page {
 					if (childLevel <= level) {
 						break;
 					}
-					(nextElem.querySelector('input[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
+					(nextElem.querySelector('[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
 					nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
 				}
 			}
@@ -553,7 +563,7 @@ export class CheckListEditPage extends Page {
 		else if (command === 'updateText') {
 			const id = response.id as string;
 			const text = response.text as string;
-			const elem = this.query(`[data-id="${id}"] input[name="text"]`, HTMLInputElement);
+			const elem = this.query(`[data-id="${id}"] [name="text"]`, HTMLTextAreaElement);
 			if (elem !== undefined) {
 				elem.value = text;
 			}
@@ -685,7 +695,7 @@ export class CheckListEditPage extends Page {
 	private _checkListId: string = '';
 
 	/** The list of items currently shrunk. */
-	private _shrunkElems: HTMLElement[] = [];
+	private _childrenOfDraggedElem: HTMLElement[] = [];
 
 	/** The original level of the dragged item. */
 	private _draggedOrigLevel: number = 0;
@@ -740,37 +750,45 @@ CheckListEditPage.css = /* css */`
 		background: var(--color4);
 		text-align: center;
 	}
-	.CheckListEditPage .items {
+	.CheckListEditPage > .items {
 		overflow-y: auto;
 		padding: .25rem;
 		height: 100%;
 	}
-	.CheckListEditPage .items .DragList p {
-		transition: height .25s, margin-left .25s;
+	.CheckListEditPage > .items .DragList p {
+		transition: height .25s, transform .25s, margin-left .25s, padding .25s;
 	}
-	.CheckListEditPage .items p {
+	.CheckListEditPage > .items p {
 		margin: 0;
 		padding: 0 0 .25rem 0;
-		height: 1.75rem;
-		vertical-align: bottom;
-	}
-	.CheckListEditPage .items p.shrunk {
-		height: 0rem;
-		padding: 0rem;
-		overflow: hidden;
 	}
 	.CheckListEditPage .grab, .CheckListEditPage .checked {
 		display: inline-block;
 		width: 1.5rem;
 		height: 1.5rem;
 		margin-right: .25rem;
-		vertical-align: bottom;
+		vertical-align: top;
 	}
 	.CheckListEditPage label.checked svg {
 		vertical-align: bottom;
 	}
-	.CheckListEditPage .items input[type="text"] {
+	.CheckListEditPage .textarea-grower {
+		vertical-align: top;
 		width: calc(100% - 3.5rem);
+		display: inline-grid;
+	}
+	.CheckListEditPage .textarea-grower .text {
+		grid-area: 1 / 1 / 2 / 2;
+		margin: 0;
+		width: 100%;
+		resize: none;
+		overflow: hidden;
+	}
+	.CheckListEditPage .textarea-grower::after {
+		grid-area: 1 / 1 / 2 / 2;
+		content: attr(data-replicated-value) " ";
+		white-space: pre-wrap;
+		visibility: hidden;
 	}
 	.CheckListEditPage .toolbar {
 		background: var(--color1);
