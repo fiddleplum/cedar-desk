@@ -226,8 +226,8 @@ CedarDeskApp.css = /* css */`
 		--color4: #2EB888;
 		--color5: #37DCA2;
 		--color6: #40FFBD;
-		font-size: 24px;
-		line-height: 36px;
+		font-size: 20px;
+		line-height: 1.25rem;
 		font-family: 'Helvetica';
 	}
 	// * {
