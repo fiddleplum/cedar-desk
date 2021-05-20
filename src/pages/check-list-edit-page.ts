@@ -35,10 +35,10 @@ export class CheckListEditPage extends Page {
 				for (const item of checkListData.items) {
 					html += /* html */`
 						<p data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
-							<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+							<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 							<label class="checked button icon"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 							<span class="textarea-grower" data-replicated-value="${item.text}">
-								<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${item.text}</textarea>
+								<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${item.text}</textarea>
 							</span>
 						</p>`;
 				}
@@ -46,10 +46,10 @@ export class CheckListEditPage extends Page {
 			else {
 				html += /* html */`
 					<p data-id="NEW" data-level="0" style="margin-left: 0rem">
-						<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+						<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 						<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 						<span class="textarea-grower" data-replicated-value="">
-							<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
+							<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
 						</span>
 					</p>`;
 			}
@@ -322,10 +322,10 @@ export class CheckListEditPage extends Page {
 			const itemLevel = itemElem.getAttribute('data-level');
 			const html = /* html */`
 				<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
-					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+					<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<span class="textarea-grower" data-replicated-value="">
-						<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
+						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
 					</span>
 				</p>`;
 			dragList.insertItems(html, itemElem.nextElementSibling ? itemElem.nextElementSibling as HTMLElement : undefined);
@@ -505,10 +505,10 @@ export class CheckListEditPage extends Page {
 			// Create new item below this one at the same level.
 			const html = /* html */`
 				<p data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
-					<button class="grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+					<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<span class="textarea-grower" data-replicated-value="${text}">
-						<textarea rows=1 class="text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${text}</textarea>
+						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${text}</textarea>
 					</span>
 				</p>`;
 			dragList.insertItems(html, beforeElem);
@@ -720,11 +720,11 @@ CheckListEditPage.html = /* html */`
 		<h1 class="title"></h1>
 		<div class="items"></div>
 		<div class="toolbar">
-			<button class="left icon" onclick="_goToCheckListListPage"><icon src="assets/icons/arrow-left.svg" alt="View check lists"></icon></button>
-			<button class="right icon" onclick="_openEditCheckListPanel"><icon src="assets/icons/wrench.svg" alt="Edit check list"></icon></button>
+			<button class="button left icon" onclick="_goToCheckListListPage"><icon src="assets/icons/arrow-left.svg" alt="View check lists"></icon></button>
+			<button class="button right icon" onclick="_openEditCheckListPanel"><icon src="assets/icons/wrench.svg" alt="Edit check list"></icon></button>
 		</div>
 		<div class="edit-check-list-panel panel" style="display: none;">
-			<button class="close icon" onclick="_closePanel|edit-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
+			<button class="button close icon" onclick="_closePanel|edit-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
 			<h1>Edit Check-List</h1>
 			<ElmForm id="edit-check-list-form">
 				<entry name="title" type="text" width="10rem">Title</entry>

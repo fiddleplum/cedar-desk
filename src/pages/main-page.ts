@@ -15,7 +15,7 @@ export class MainPage extends Page {
 
 MainPage.html = /* html */`
 	<div>
-		<p><button onclick="_goToApp|check-list">Check-Lists</button></p>
+		<p><button class="button" onclick="_goToApp|check-list">Check-Lists</button></p>
 	</div>
 	`;
 

@@ -98,7 +98,7 @@ export class CedarDeskApp extends SimpleApp {
 					command: 'getGroups'
 				}) as string[];
 				if (groups.includes('admins')) {
-					const html = `<button data-page="admin" onclick="_goToPage">Admin</button>`;
+					const html = `<button class="button" data-page="admin" onclick="_goToPage">Admin</button>`;
 					this.insertHtml(html, this.query('.menu', Element)!, this.query('.logout', Element), this);
 				}
 			}
@@ -206,12 +206,12 @@ CedarDeskApp.html = /* html */`
 		<div class="header">
 			<icon class="logo" src="assets/icons/logo.svg" alt=""></icon>
 			<span class="title"></span>
-			<button class="menu-button hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg" alt="menu"></icon></button>
+			<button class="button menu-button hidden" onclick="_openMenu"><icon src="assets/icons/menu.svg" alt="menu"></icon></button>
 			<div class="menu hidden">
-				<button data-page="check-list" onclick="_goToPage">Check Lists</button>
+				<button class="button" data-page="check-list" onclick="_goToPage">Check Lists</button>
 				<!--<button data-page="sun-alarm" onclick="_goToPage">Sun Alarm</button>-->
-				<button data-page="account" onclick="_goToPage">User Settings</button>
-				<button class="logout" onclick="_logout">Log Out</button>
+				<button class="button" data-page="account" onclick="_goToPage">User Settings</button>
+				<button class="logout button" onclick="_logout">Log Out</button>
 			</div>
 		</div>
 		<div class="page"></div>
@@ -326,7 +326,7 @@ CedarDeskApp.css = /* css */`
 	section + section {
 		margin-top: .25rem;
 	}
-	section button, section .button, section input[type="text"], section input[type="password"], .text {
+	section .button, section .input {
 		background: var(--color4);
 	}
 	.panel {
@@ -388,7 +388,7 @@ CedarDeskApp.css = /* css */`
 	}
 
 	/* Give the nice rounded background for all form elements and buttons. */
-	button, .button, input[type="text"], input[type="password"], .text, .textarea-grower::after {
+	.button, .input {
 		display: inline-block;
 		border: 0;
 		border-radius: .25rem;
