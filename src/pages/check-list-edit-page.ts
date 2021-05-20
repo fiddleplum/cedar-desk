@@ -341,6 +341,8 @@ export class CheckListEditPage extends Page {
 			// Move focus to new item.
 			newTextAreaElem.focus();
 			newTextAreaElem.setSelectionRange(0, 0);
+			// Prevent the actual enter from happening.
+			event.preventDefault();
 		}
 		else if (event.key === 'Backspace' || event.key === 'Delete') {
 			// If it is already blank,

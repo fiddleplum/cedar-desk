@@ -230,11 +230,6 @@ CedarDeskApp.css = /* css */`
 		line-height: 1.25rem;
 		font-family: 'Helvetica';
 	}
-	// * {
-	// 	transition-property: transform, padding, opacity, background, color, fill;
-	// 	transition-duration: .25s;
-	// 	transition-timing-function: ease-out;
-	// }
 	.CedarDeskApp {
 		margin: 0;
 		width: 100%;
