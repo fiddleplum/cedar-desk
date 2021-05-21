@@ -1,6 +1,6 @@
 {
 	"description": "Cedar Desk",
-	"display": "fullscreen",
+	"display": "standalone",
 	"icons": [{
 		"src": "logo.svg",
 		"sizes": "192x192 512x512"

@@ -1,5 +1,5 @@
 import { download } from 'pine-lib';
-import { SimpleApp, Cookies, WS } from 'elm-app';
+import { SimpleApp, Cookies, FullSize, WS } from 'elm-app';
 import { Page } from 'page';
 
 import { UserSettingsPage } from 'pages/user-settings-page';
@@ -16,6 +16,9 @@ export class CedarDeskApp extends SimpleApp {
 	/** Constructs the app. */
 	constructor() {
 		super();
+
+		// Make the app always full size.
+		FullSize.init();
 
 		// Set the title.
 		this.setTitleHTML('Cedar Desk');
@@ -233,14 +236,11 @@ CedarDeskApp.css = /* css */`
 	.CedarDeskApp {
 		margin: 0;
 		width: 100%;
-		min-height: 100vh;
 		display: grid;
 		grid-template-rows: 2.5rem 1fr;
-		grid-template-areas: "header" "page";
 		background: var(--color6);
 	}
 	.CedarDeskApp .header {
-		grid-area: header;
 		position: relative;
 		display: grid;
 		grid-template-columns: 2.5rem 1fr 2.5rem;
@@ -307,10 +307,10 @@ CedarDeskApp.css = /* css */`
 		transform: scaleY(0);
 	}
 	.CedarDeskApp .page {
-		grid-area: page;
 		position: relative;
 		background: var(--color6);
 		color: var(--color1);
+		overflow: auto;
 	}
 	.CedarDeskApp .page.fadeOut {
 		opacity: 0;

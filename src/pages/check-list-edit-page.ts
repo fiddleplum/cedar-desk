@@ -744,7 +744,7 @@ CheckListEditPage.css = /* css */`
 	.CheckListEditPage {
 		display: grid;
 		grid-template-rows: 2.5rem 1fr 2.5rem;
-		height: calc(100vh - 2.5rem);
+		height: 100%;
 	}
 	.CheckListEditPage .title {
 		margin: 0;
@@ -763,6 +763,9 @@ CheckListEditPage.css = /* css */`
 	.CheckListEditPage > .items p {
 		margin: 0;
 		padding: 0 0 .25rem 0;
+	}
+	.CheckListEditPage > .items p:last-child {
+		padding: 0;
 	}
 	.CheckListEditPage .grab, .CheckListEditPage .checked {
 		display: inline-block;
@@ -791,6 +794,8 @@ CheckListEditPage.css = /* css */`
 		content: attr(data-replicated-value) " ";
 		white-space: pre-wrap;
 		visibility: hidden;
+		padding: .25rem;
+		line-height: 1rem;
 	}
 	.CheckListEditPage .toolbar {
 		background: var(--color1);
