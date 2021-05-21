@@ -197,13 +197,13 @@ export class CheckListEditPage extends Page {
 				child.style.padding = '';
 				child.style.overflow = '';
 			}
-		}).bind(undefined, this._childrenOfDraggedElem), 0);
+		}).bind(undefined, this._childrenOfDraggedElem), 100);
 		// Change height back to auto once the transition is done.
 		setTimeout(((childrenOfDraggedElem: HTMLElement[]): void => {
 			for (const child of childrenOfDraggedElem) {
 				child.style.height = '';
 			}
-		}).bind(undefined, this._childrenOfDraggedElem), 250);
+		}).bind(undefined, this._childrenOfDraggedElem), 350);
 		// Clean up the shrunk elements.
 		this._childrenOfDraggedElem = [];
 		// Send the update level command.
