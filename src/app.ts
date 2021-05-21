@@ -419,12 +419,14 @@ CedarDeskApp.css = /* css */`
 	}
 	/* Make unchecked checkboxes have no check. */
 	label input[type="checkbox"] ~ svg {
-		opacity: 0;
-		transition: opacity .25s;
+		opacity: 25%;
+		transform: scale(.75);
+		transition: opacity .25s, transform .25s;
 	}
 	/* Make checked checkboxes have a check. */
 	label input[type="checkbox"]:checked ~ svg {
-		opacity: 1;
+		opacity: 100%;
+		transform: scale(1);
 	}
 
 	button:disabled, input:disabled, input[type=checkbox]:disabled + label, input[type=radio]:disabled + label {

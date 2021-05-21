@@ -34,9 +34,9 @@ export class CheckListEditPage extends Page {
 			if (checkListData.items.length !== 0) {
 				for (const item of checkListData.items) {
 					html += /* html */`
-						<p data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
+						<p class="${item.checked ? 'checked' : ''}" data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
 							<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-							<label class="checked button icon"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+							<label class="checkbox button icon"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 							<span class="textarea-grower" data-replicated-value="${item.text}">
 								<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${item.text}</textarea>
 							</span>
@@ -47,7 +47,7 @@ export class CheckListEditPage extends Page {
 				html += /* html */`
 					<p data-id="NEW" data-level="0" style="margin-left: 0rem">
 						<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-						<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+						<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 						<span class="textarea-grower" data-replicated-value="">
 							<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
 						</span>
@@ -339,7 +339,7 @@ export class CheckListEditPage extends Page {
 			const html = /* html */`
 				<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
 					<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+					<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<span class="textarea-grower" data-replicated-value="">
 						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
 					</span>
@@ -471,6 +471,7 @@ export class CheckListEditPage extends Page {
 	private _onChecked(event: InputEvent): void {
 		const checkedInputElem = event.target as HTMLInputElement;
 		const elem = checkedInputElem.parentElement!.parentElement!;
+		elem.classList.toggle('checked', checkedInputElem.checked);
 		if (this._removeOnCheck) {
 			const elemsToRemove = [elem];
 			// Remove the children too.
@@ -499,6 +500,7 @@ export class CheckListEditPage extends Page {
 				if (childLevel <= level) {
 					break;
 				}
+				nextElem.classList.toggle('checked', checkedInputElem.checked);
 				(nextElem.querySelector('[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
 				nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
 			}
@@ -520,9 +522,9 @@ export class CheckListEditPage extends Page {
 			const beforeElem = beforeId !== undefined ? this.query(`[data-id="${beforeId}"]`, HTMLElement) : undefined;
 			// Create new item below this one at the same level.
 			const html = /* html */`
-				<p data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
+				<p class="${checked ? 'checked' : ''}" data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
 					<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<label class="checked button icon"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
+					<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<span class="textarea-grower" data-replicated-value="${text}">
 						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${text}</textarea>
 					</span>
@@ -564,6 +566,7 @@ export class CheckListEditPage extends Page {
 			else {
 				const checkedInputElem = elem.querySelector('[name="checked"]') as HTMLInputElement;
 				checkedInputElem.checked = checked;
+				elem.classList.toggle('checked', checkedInputElem.checked);
 				// Check the children too.
 				const level = parseInt(elem.getAttribute('data-level')!);
 				let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
@@ -573,6 +576,7 @@ export class CheckListEditPage extends Page {
 					if (childLevel <= level) {
 						break;
 					}
+					nextElem.classList.toggle('checked', checkedInputElem.checked);
 					(nextElem.querySelector('[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
 					nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
 				}
@@ -701,7 +705,8 @@ export class CheckListEditPage extends Page {
 				}
 			});
 
-			this._closePanel('edit-check-list-panel');
+			// Go back to the same page, ensuring that the check-list properties have changed.
+			this.app.router.pushQuery({}, true);
 		}
 		catch (error) {
 			form.setMessage((error as Error).message + '');
@@ -774,7 +779,7 @@ CheckListEditPage.css = /* css */`
 		height: 100%;
 	}
 	.CheckListEditPage > .items .DragList p {
-		transition: height .25s, transform .25s, margin-left .25s, padding .25s;
+		transition: height .25s, transform .25s, margin-left .25s, padding .25s, opacity .25s;
 	}
 	.CheckListEditPage > .items p {
 		margin: 0;
@@ -783,16 +788,26 @@ CheckListEditPage.css = /* css */`
 	.CheckListEditPage > .items p:last-child {
 		padding: 0;
 	}
-	.CheckListEditPage .grab, .CheckListEditPage .checked {
+	.CheckListEditPage .grab, .CheckListEditPage .checkbox {
 		display: inline-block;
 		width: 1.5rem;
 		height: 1.5rem;
 		margin-right: .25rem;
 		vertical-align: top;
 	}
-	.CheckListEditPage label.checked svg {
+	.CheckListEditPage label.checkbox svg {
 		vertical-align: bottom;
 	}
+	/* Make checked checkboxes have a check. */
+	.CheckListEditPage [name="checked"]:checked ~ svg {
+		opacity: 200%;
+		transform: scale(1);
+	}
+	/* Make the checked items a bit more faded. */
+	.CheckListEditPage .checked .text {
+		opacity: 50%;
+	}
+
 	.CheckListEditPage .textarea-grower {
 		vertical-align: top;
 		width: calc(100% - 3.5rem);
