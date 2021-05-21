@@ -116,10 +116,12 @@ export class CheckListEditPage extends Page {
 		// Get the x value of the cursor.
 		this._refX = this._getX(event);
 		// Make the children of the dragged elem shrunk.
-		if (this._childrenOfDraggedElem.length > 0 && !this._childrenOfDraggedElem[0].classList.contains('shrunk')) {
+		if (this._childrenOfDraggedElem.length > 0) {
 			for (const child of this._childrenOfDraggedElem) {
 				const childBounds = child.getBoundingClientRect();
 				child.style.height = `${childBounds.height}px`;
+				child.dataset.height = `${childBounds.height}px`;
+				child.classList.add('dragged');
 				// Add the shrunk class. In a setTimeout to enable transitions.
 				setTimeout(() => {
 					child.style.height = '0';
@@ -176,18 +178,32 @@ export class CheckListEditPage extends Page {
 
 	/** Called just after the drag is released. */
 	private _onItemAfterRelease(_dragList: DragList, _event: string, elem: HTMLElement, beforeElem: HTMLElement | undefined): void {
+		// The before elem may be one of the child shrunk elements, so find the first one that's not.
+		while (beforeElem !== undefined && this._childrenOfDraggedElem.includes(beforeElem)) {
+			beforeElem = (beforeElem.nextElementSibling as HTMLElement | null) ?? undefined;
+		}
 		// Reinsert the shrunk elems to be after the drag element.
 		for (const child of this._childrenOfDraggedElem) {
 			elem.parentElement!.insertBefore(child, beforeElem ?? null);
+			child.classList.remove('dragged');
 		}
-		// Remove the shrunk class. Use timeout so the transition happens.
+		if (this._childrenOfDraggedElem.length > 0) {
+			this._childrenOfDraggedElem[0].style.marginTop = `0px`;
+		}
+		// Remove the shrunk properties. Use timeout so the transition happens.
 		setTimeout(((childrenOfDraggedElem: HTMLElement[]): void => {
 			for (const child of childrenOfDraggedElem) {
-				child.style.height = '';
+				child.style.height = child.dataset.height!;
 				child.style.padding = '';
 				child.style.overflow = '';
 			}
 		}).bind(undefined, this._childrenOfDraggedElem), 0);
+		// Change height back to auto once the transition is done.
+		setTimeout(((childrenOfDraggedElem: HTMLElement[]): void => {
+			for (const child of childrenOfDraggedElem) {
+				child.style.height = '';
+			}
+		}).bind(undefined, this._childrenOfDraggedElem), 250);
 		// Clean up the shrunk elements.
 		this._childrenOfDraggedElem = [];
 		// Send the update level command.
