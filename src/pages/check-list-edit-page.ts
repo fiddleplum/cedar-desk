@@ -35,22 +35,24 @@ export class CheckListEditPage extends Page {
 				for (const item of checkListData.items) {
 					html += /* html */`
 						<p class="${item.checked ? 'checked' : ''}" data-id="${item.id}" data-level="${item.level}" style="margin-left: ${item.level}rem">
-							<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-							<label class="checkbox button icon"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+							<button class="button grab svg" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+							<label class="checkbox button svg"><input name="checked" type="checkbox" ${item.checked ? 'checked' : ''} onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 							<span class="textarea-grower" data-replicated-value="${item.text}">
-								<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${item.text}</textarea>
+								<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput" onfocus="_onFocus">${item.text}</textarea>
 							</span>
+							<button class="button remove svg" onclick="_removeButtonPressed"><icon src="assets/icons/close.svg" alt="remove item"></icon></button>
 						</p>`;
 				}
 			}
 			else {
 				html += /* html */`
 					<p data-id="NEW" data-level="0" style="margin-left: 0rem">
-						<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-						<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+						<button class="button grab svg" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+						<label class="checkbox button svg"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 						<span class="textarea-grower" data-replicated-value="">
 							<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
 						</span>
+						<button class="button remove svg" onclick="_removeButtonPressed"><icon src="assets/icons/close.svg" alt="remove item"></icon></button>
 					</p>`;
 			}
 			html += `</DragList>`;
@@ -263,7 +265,7 @@ export class CheckListEditPage extends Page {
 				checked: checked
 			}
 		});
-		// Delete it from the changed inputs, since it has just been saved.
+		// Remove it from the changed inputs, since it has just been saved.
 		this._changedElems.delete(elem);
 	}
 
@@ -281,7 +283,7 @@ export class CheckListEditPage extends Page {
 				text: text
 			}
 		});
-		// Delete it from the changed inputs, since it has just been saved.
+		// Remove it from the changed inputs, since it has just been saved.
 		this._changedElems.delete(elem);
 	}
 
@@ -376,11 +378,12 @@ export class CheckListEditPage extends Page {
 		const itemLevel = itemElem.getAttribute('data-level');
 		const html = /* html */`
 			<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
-				<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-				<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+				<button class="button grab svg" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+				<label class="checkbox button svg"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 				<span class="textarea-grower" data-replicated-value="">
 					<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
 				</span>
+				<button class="button remove svg" onclick="_removeButtonPressed"><icon src="assets/icons/close.svg" alt="remove item"></icon></button>
 			</p>`;
 		dragList.insertItems(html, itemElem.nextElementSibling ? itemElem.nextElementSibling as HTMLElement : undefined);
 		// Add any text to the right of the cursor, to the new input.
@@ -432,6 +435,57 @@ export class CheckListEditPage extends Page {
 		// Remove the item from the list.
 		const dragList = this.component('list', DragList);
 		dragList.removeItem(itemElem);
+	}
+
+	/** Called when the remove button is pressed. */
+	private _removeButtonPressed(event: InputEvent): void {
+		console.log(event);
+		this._removeItem((event.target as HTMLElement).parentElement!, true);
+	}
+
+	/** Opens the popup. */
+	private _openPopup(): void {
+		this.query('.popup', HTMLElement)!.classList.add('opened');
+	}
+
+	/** Closes the popup. */
+	private _closePopup(): void {
+		this.query('.popup', HTMLElement)!.classList.remove('opened');
+	}
+
+	private _popupYesButtonPressed(): void {
+		this.query('.popup', HTMLElement)!.classList.remove('opened');
+		this._removeItem(this._itemToRemove!, false);
+	}
+
+	/** Removes an item. Checks with user if there is more than one item. */
+	private _removeItem(itemElem: HTMLElement, doPopup: boolean): void {
+		// Get the list of items to remove.
+		const elemsToRemove = [itemElem];
+		const level = parseInt(itemElem.getAttribute('data-level')!);
+		let nextElem = itemElem.nextElementSibling as HTMLElement | null ?? undefined;
+		while (nextElem !== undefined) {
+			const childLevel = parseInt(nextElem.getAttribute('data-level')!);
+			// It's not a child, so finish.
+			if (childLevel <= level) {
+				break;
+			}
+			elemsToRemove.push(nextElem);
+			nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
+		}
+		// If there are more than one, do a popup.
+		if (elemsToRemove.length > 1 && doPopup) {
+			this._itemToRemove = itemElem;
+			this._openPopup();
+		}
+		else {
+			// Do the removing.
+			for (const elemToRemove of elemsToRemove) {
+				console.log(elemToRemove);
+				this._sendRemoveItemCommand(elemToRemove);
+				elemToRemove.parentElement!.removeChild(elemToRemove);
+			}
+		}
 	}
 
 	/** Shifts an item to the right or left. Returns the actual number of levels changed. */
@@ -493,30 +547,31 @@ export class CheckListEditPage extends Page {
 		(textAreaElem.parentNode as HTMLElement).dataset.replicatedValue = textAreaElem.value;
 	}
 
+	/** When the text area goes into focus. */
+	private _onFocus(event: FocusEvent): void {
+		const textAreaElem = event.target as HTMLTextAreaElement;
+		if (this._currentFocus !== undefined) {
+			this._currentFocus.parentElement!.parentElement!.classList.remove('focused');
+		}
+		this._currentFocus = textAreaElem;
+		if (this._currentFocus !== undefined) {
+			this._currentFocus.parentElement!.parentElement!.classList.add('focused');
+		}
+	}
+
 	/** When one of the items is checked. */
 	private _onChecked(event: InputEvent): void {
 		const checkedInputElem = event.target as HTMLInputElement;
 		const elem = checkedInputElem.parentElement!.parentElement!;
-		elem.classList.toggle('checked', checkedInputElem.checked);
 		if (this._removeOnCheck) {
-			const elemsToRemove = [elem];
-			// Remove the children too.
-			const level = parseInt(elem.getAttribute('data-level')!);
-			let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
-			while (nextElem !== undefined) {
-				const childLevel = parseInt(nextElem.getAttribute('data-level')!);
-				// It's not a child, so finish.
-				if (childLevel <= level) {
-					break;
-				}
-				elemsToRemove.push(nextElem);
-				nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
-			}
-			for (const elemToRemove of elemsToRemove) {
-				elemToRemove.parentElement!.removeChild(elemToRemove);
-			}
+			// Don't actually check the item.
+			checkedInputElem.checked = false;
+			// Just remove it.
+			this._removeItem(elem, true);
 		}
 		else {
+			// Check the item.
+			elem.classList.toggle('checked', checkedInputElem.checked);
 			// Check the children too.
 			const level = parseInt(elem.getAttribute('data-level')!);
 			let nextElem = elem.nextElementSibling as HTMLElement | null ?? undefined;
@@ -530,8 +585,8 @@ export class CheckListEditPage extends Page {
 				(nextElem.querySelector('[name="checked"]') as HTMLInputElement).checked = checkedInputElem.checked;
 				nextElem = nextElem.nextElementSibling as HTMLElement | null ?? undefined;
 			}
+			this._sendUpdateCheckedCommand(elem);
 		}
-		this._sendUpdateCheckedCommand(elem);
 	}
 
 	/** When a command is received from the server. */
@@ -549,11 +604,12 @@ export class CheckListEditPage extends Page {
 			// Create new item below this one at the same level.
 			const html = /* html */`
 				<p class="${checked ? 'checked' : ''}" data-id="${id}" data-level="${level}" style="margin-left: ${level}rem">
-					<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
+					<button class="button grab svg" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+					<label class="checkbox button svg"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<span class="textarea-grower" data-replicated-value="${text}">
 						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${text}</textarea>
 					</span>
+					<button class="button remove svg" onclick="_removeButtonPressed"><icon src="assets/icons/close.svg" alt="remove item"></icon></button>
 				</p>`;
 			dragList.insertItems(html, beforeElem);
 		}
@@ -760,6 +816,12 @@ export class CheckListEditPage extends Page {
 
 	/** Flag if items should be removed when checked. */
 	private _removeOnCheck: boolean = false;
+
+	/** The currently focused text area. */
+	private _currentFocus: HTMLTextAreaElement | undefined;
+
+	/** The current item being checked in the popup. */
+	private _itemToRemove: HTMLElement | undefined;
 }
 
 CheckListEditPage.html = /* html */`
@@ -767,11 +829,18 @@ CheckListEditPage.html = /* html */`
 		<h1 class="title"></h1>
 		<div class="items"></div>
 		<div class="toolbar">
-			<button class="button left icon" onclick="_goToCheckListListPage"><icon src="assets/icons/arrow-left.svg" alt="View check lists"></icon></button>
-			<button class="button right icon" onclick="_openEditCheckListPanel"><icon src="assets/icons/wrench.svg" alt="Edit check list"></icon></button>
+			<button class="button left svg" onclick="_goToCheckListListPage"><icon src="assets/icons/arrow-left.svg" alt="View check lists"></icon></button>
+			<button class="button right svg" onclick="_openEditCheckListPanel"><icon src="assets/icons/wrench.svg" alt="Edit check list"></icon></button>
+		</div>
+		<div class="check-remove-popup popup">
+			<p>Are you sure you want to remove these?</p>
+			<p class="buttons">
+				<button class="button" onclick="_closePopup">No</button>
+				<button class="button" onclick="_popupYesButtonPressed">Yes</button>
+			</p>
 		</div>
 		<div class="edit-check-list-panel panel" style="display: none;">
-			<button class="button close icon" onclick="_closePanel|edit-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
+			<button class="button close svg" onclick="_closePanel|edit-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
 			<h1>Edit Check-List</h1>
 			<ElmForm id="edit-check-list-form">
 				<entry name="title" type="text" width="10rem">Title</entry>
@@ -811,15 +880,14 @@ CheckListEditPage.css = /* css */`
 		margin: 0;
 		padding: 0 0 .25rem 0;
 	}
-	.CheckListEditPage > .items p:last-child {
-		padding: 0;
-	}
-	.CheckListEditPage .grab, .CheckListEditPage .checkbox {
+	.CheckListEditPage .grab, .CheckListEditPage .checkbox, .CheckListEditPage .remove {
 		display: inline-block;
 		width: 1.5rem;
 		height: 1.5rem;
-		margin-right: .25rem;
 		vertical-align: top;
+	}
+	.CheckListEditPage .grab, .CheckListEditPage .checkbox {
+		margin-right: .25rem;
 	}
 	.CheckListEditPage label.checkbox svg {
 		vertical-align: bottom;
@@ -839,6 +907,9 @@ CheckListEditPage.css = /* css */`
 		width: calc(100% - 3.5rem);
 		display: inline-grid;
 	}
+	.CheckListEditPage p.focused .textarea-grower {
+		width: calc(100% - 5.25rem);
+	}
 	.CheckListEditPage .textarea-grower .text {
 		grid-area: 1 / 1 / 2 / 2;
 		margin: 0;
@@ -854,6 +925,15 @@ CheckListEditPage.css = /* css */`
 		padding: .25rem;
 		line-height: 1rem;
 	}
+
+	.CheckListEditPage .remove {
+		margin-left: .25rem;
+		display: none;
+	}
+	.CheckListEditPage p.focused .remove {
+		display: inline-block;
+	}
+
 	.CheckListEditPage .toolbar {
 		background: var(--color1);
 		color: var(--color4);
@@ -872,14 +952,17 @@ CheckListEditPage.css = /* css */`
 	.CheckListEditPage .toolbar .right {
 		float: right;
 	}
-	.CheckListEditPage .panel {
-		position: absolute;
-		left: 0;
-		top: 0;
-		width: 100%;
-		height: 100%;
-		background: var(--color6);
-		padding: .5rem;
+	.CheckListEditPage .popup {
+		display: none;
+	}
+	.CheckListEditPage .popup.opened {
+		display: block;
+	}
+	.CheckListEditPage .popup button + button {
+		margin-left: .25rem;
+	}
+	.CheckListEditPage .popup .buttons {
+		text-align: right;
 	}
 	.CheckListEditPage .panel button.close {
 		float: right;

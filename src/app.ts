@@ -329,6 +329,15 @@ CedarDeskApp.css = /* css */`
 	section .button, section .input {
 		background: var(--color4);
 	}
+	.popup {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		padding: .25rem;
+		background: var(--color4);
+		border-radius: .25rem;
+	}
 	.panel {
 		position: absolute;
 		left: 0;
@@ -401,7 +410,7 @@ CedarDeskApp.css = /* css */`
 		line-height: 1rem;
 	}
 	/* Make icon buttons have no padding, since the svg fills it all up. */
-	button.icon, .button.icon {
+	.button.svg {
 		padding: 0;
 	}
 	/* Hide the actual checkbox and radio inputs. */

@@ -22,9 +22,9 @@ export class CheckListPage extends Page {
 			for (const checkListListItem of checkListListData) {
 				html += /* html */`
 					<div class="item" data-id="${checkListListItem.id}">
-						<button class="button grab icon"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+						<button class="button grab svg"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 						<button class="button list" onclick="_viewCheckList|${checkListListItem.id}">${checkListListItem.title}</button>
-						<button class="button delete icon" onclick="_openRemoveCheckListPanel|${checkListListItem.id}"><icon src="assets/icons/close.svg" alt="delete"></icon></button>
+						<button class="button delete svg" onclick="_openRemoveCheckListPanel|${checkListListItem.id}"><icon src="assets/icons/close.svg" alt="delete"></icon></button>
 					</div>`;
 			}
 			html += '</DragList>';
@@ -192,7 +192,7 @@ CheckListPage.html = /* html */`
 			<button class="button" onclick="_openAddCheckListPanel"><icon src="assets/icons/plus.svg" alt="Add check list"></icon></button>
 		</div>
 		<div class="add-check-list-panel panel" style="display: none;">
-			<button class="button close icon" onclick="_closePanel|add-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
+			<button class="button close svg" onclick="_closePanel|add-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
 			<h1>New Check-List</h1>
 			<ElmForm id="add-check-list-form">
 				<entry name="title" type="text" width="10rem">Title</entry>
@@ -206,7 +206,7 @@ CheckListPage.html = /* html */`
 			</ElmForm>
 		</div>
 		<div class="remove-check-list-panel panel" style="display: none;">
-			<button class="button close icon" onclick="_closePanel|remove-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
+			<button class="button close svg" onclick="_closePanel|remove-check-list-panel"><icon src="assets/icons/close.svg" alt="Close"></icon></button>
 			<h1>Remove</h1>
 			<ElmForm id="remove-check-list-form">
 				<entry name="id" type="hidden"></entry>
