@@ -332,31 +332,9 @@ export class CheckListEditPage extends Page {
 		// Get the relative item and its input.
 		const textAreaElem = event.target as HTMLTextAreaElement;
 		const itemElem = textAreaElem.parentElement!.parentElement as HTMLParagraphElement;
-		if (event.key === 'Enter') {
-			// Create new item below this one at the same level.
-			const dragList = this.component('list', DragList);
-			const itemLevel = itemElem.getAttribute('data-level');
-			const html = /* html */`
-				<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
-					<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
-					<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
-					<span class="textarea-grower" data-replicated-value="">
-						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
-					</span>
-				</p>`;
-			dragList.insertItems(html, itemElem.nextElementSibling ? itemElem.nextElementSibling as HTMLElement : undefined);
-			// Add any text to the right of the cursor, to the new input.
-			const newItemElem = itemElem.nextElementSibling as HTMLElement;
-			const newTextAreaElem = newItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
-			newTextAreaElem.value = textAreaElem.value.substring(textAreaElem.selectionEnd);
-			// Remove any text to the right of the cursor from the old input.
-			textAreaElem.value = textAreaElem.value.substring(0, textAreaElem.selectionStart);
-			// Save both items.
-			this._sendUpdateTextCommand(itemElem);
-			this._sendAddItemCommand(newItemElem);
-			// Move focus to new item.
-			newTextAreaElem.focus();
-			newTextAreaElem.setSelectionRange(0, 0);
+		// Android keyboards don't report the correct keys for when enter is pressed, so check if there's an enter in the input.
+		if (event.key === 'Enter' || textAreaElem.value.includes('\n')) {
+			this._processEnterKey(itemElem);
 			// Prevent the actual enter from happening.
 			event.preventDefault();
 		}
@@ -365,41 +343,14 @@ export class CheckListEditPage extends Page {
 			if (event.key === 'Backspace'
 					&& textAreaElem.selectionStart === 0 && textAreaElem.selectionEnd === 0
 					&& itemElem.previousElementSibling !== null) {
-				// Append any text in the input to the prev item.
-				const prevItemElem = itemElem.previousElementSibling as HTMLElement;
-				const prevTextAreaElem = prevItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
-				const prevTextAreaElemLength = prevTextAreaElem.value.length;
-				prevTextAreaElem.value = prevTextAreaElem.value + textAreaElem.value;
-				// Update the prev item.
-				this._sendUpdateTextCommand(prevItemElem);
-				// Focus on the end of the previous item.
-				prevTextAreaElem.focus();
-				prevTextAreaElem.setSelectionRange(prevTextAreaElemLength, prevTextAreaElemLength);
-				// Send the remove item command.
-				this._sendRemoveItemCommand(itemElem);
-				// Remove the item from the list.
-				const dragList = this.component('list', DragList);
-				dragList.removeItem(itemElem);
+				this._processBackspaceKey(itemElem);
 				// Make the event not do an actual backspace.
 				event.preventDefault();
 			}
 			else if (event.key === 'Delete'
 					&& textAreaElem.selectionStart === textAreaElem.value.length && textAreaElem.selectionEnd === textAreaElem.value.length
 					&& itemElem.nextElementSibling !== null) {
-				// Prepend any text in the input to the next item.
-				const nextItemElem = itemElem.nextElementSibling as HTMLElement;
-				const nextTextAreaElem = nextItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
-				nextTextAreaElem.value = textAreaElem.value + nextTextAreaElem.value;
-				// Focus on the end of the next item.
-				nextTextAreaElem.focus();
-				nextTextAreaElem.setSelectionRange(textAreaElem.value.length, textAreaElem.value.length);
-				// Update the next item.
-				this._sendUpdateTextCommand(nextItemElem);
-				// Send the remove item command.
-				this._sendRemoveItemCommand(itemElem);
-				// Remove the item from the list.
-				const dragList = this.component('list', DragList);
-				dragList.removeItem(itemElem);
+				this._processDeleteKey(itemElem);
 				// Make the event not do an actual backspace.
 				event.preventDefault();
 			}
@@ -416,6 +367,71 @@ export class CheckListEditPage extends Page {
 				this._sendUpdateLevelCommand(itemElem);
 			}
 		}
+	}
+
+	private _processEnterKey(itemElem: HTMLElement): void {
+		const textAreaElem = itemElem.querySelector('textarea') as HTMLTextAreaElement;
+		// Create new item below this one at the same level.
+		const dragList = this.component('list', DragList);
+		const itemLevel = itemElem.getAttribute('data-level');
+		const html = /* html */`
+			<p data-id="NEW" data-level="${itemLevel}" style="margin-left: ${itemLevel}rem">
+				<button class="button grab icon" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
+				<label class="checkbox button icon"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
+				<span class="textarea-grower" data-replicated-value="">
+					<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
+				</span>
+			</p>`;
+		dragList.insertItems(html, itemElem.nextElementSibling ? itemElem.nextElementSibling as HTMLElement : undefined);
+		// Add any text to the right of the cursor, to the new input.
+		const newItemElem = itemElem.nextElementSibling as HTMLElement;
+		const newTextAreaElem = newItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
+		newTextAreaElem.value = textAreaElem.value.substring(textAreaElem.selectionEnd);
+		// Remove any text to the right of the cursor from the old input.
+		textAreaElem.value = textAreaElem.value.substring(0, textAreaElem.selectionStart);
+		// Save both items.
+		this._sendUpdateTextCommand(itemElem);
+		this._sendAddItemCommand(newItemElem);
+		// Move focus to new item.
+		newTextAreaElem.focus();
+		newTextAreaElem.setSelectionRange(0, 0);
+	}
+
+	private _processBackspaceKey(itemElem: HTMLElement): void {
+		const textAreaElem = itemElem.querySelector('textarea') as HTMLTextAreaElement;
+		// Append any text in the input to the prev item.
+		const prevItemElem = itemElem.previousElementSibling as HTMLElement;
+		const prevTextAreaElem = prevItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
+		const prevTextAreaElemLength = prevTextAreaElem.value.length;
+		prevTextAreaElem.value = prevTextAreaElem.value + textAreaElem.value;
+		// Update the prev item.
+		this._sendUpdateTextCommand(prevItemElem);
+		// Focus on the end of the previous item.
+		prevTextAreaElem.focus();
+		prevTextAreaElem.setSelectionRange(prevTextAreaElemLength, prevTextAreaElemLength);
+		// Send the remove item command.
+		this._sendRemoveItemCommand(itemElem);
+		// Remove the item from the list.
+		const dragList = this.component('list', DragList);
+		dragList.removeItem(itemElem);
+	}
+
+	private _processDeleteKey(itemElem: HTMLElement): void {
+		const textAreaElem = itemElem.querySelector('textarea') as HTMLTextAreaElement;
+		// Prepend any text in the input to the next item.
+		const nextItemElem = itemElem.nextElementSibling as HTMLElement;
+		const nextTextAreaElem = nextItemElem.querySelector('[name="text"]') as HTMLTextAreaElement;
+		nextTextAreaElem.value = textAreaElem.value + nextTextAreaElem.value;
+		// Focus on the end of the next item.
+		nextTextAreaElem.focus();
+		nextTextAreaElem.setSelectionRange(textAreaElem.value.length, textAreaElem.value.length);
+		// Update the next item.
+		this._sendUpdateTextCommand(nextItemElem);
+		// Send the remove item command.
+		this._sendRemoveItemCommand(itemElem);
+		// Remove the item from the list.
+		const dragList = this.component('list', DragList);
+		dragList.removeItem(itemElem);
 	}
 
 	/** Shifts an item to the right or left. Returns the actual number of levels changed. */
@@ -463,7 +479,17 @@ export class CheckListEditPage extends Page {
 	/** When one of the items text values have changed. */
 	private _onInput(event: InputEvent): void {
 		const textAreaElem = event.target as HTMLTextAreaElement;
+		// Check for an enter pressed.
+		// Needed here and not in keydown because Android keyboard doesn't send a proper enter event.
+		if (textAreaElem.value.includes('\n')) {
+			const selectionStart = textAreaElem.selectionStart - 1;
+			textAreaElem.value = textAreaElem.value.replace('\n', '');
+			textAreaElem.selectionStart = textAreaElem.selectionEnd = selectionStart;
+			this._processEnterKey(textAreaElem.parentElement!.parentElement!);
+		}
+		// Update the changed items list.
 		this._changedElems.add(textAreaElem.parentElement!.parentElement!);
+		// Make sure the replicated-value is updated so that the other div's height is set.
 		(textAreaElem.parentNode as HTMLElement).dataset.replicatedValue = textAreaElem.value;
 	}
 
