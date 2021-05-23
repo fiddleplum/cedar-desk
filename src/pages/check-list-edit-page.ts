@@ -50,7 +50,7 @@ export class CheckListEditPage extends Page {
 						<button class="button grab svg" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 						<label class="checkbox button svg"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 						<span class="textarea-grower" data-replicated-value="">
-							<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
+							<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput" onfocus="_onFocus"></textarea>
 						</span>
 						<button class="button remove svg" onclick="_removeButtonPressed"><icon src="assets/icons/close.svg" alt="remove item"></icon></button>
 					</p>`;
@@ -381,7 +381,7 @@ export class CheckListEditPage extends Page {
 				<button class="button grab svg" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 				<label class="checkbox button svg"><input name="checked" type="checkbox" onchange="_onChecked" /><icon src="assets/icons/check.svg" alt="check"></icon></label>
 				<span class="textarea-grower" data-replicated-value="">
-					<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput"></textarea>
+					<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput" onfocus="_onFocus"></textarea>
 				</span>
 				<button class="button remove svg" onclick="_removeButtonPressed"><icon src="assets/icons/close.svg" alt="remove item"></icon></button>
 			</p>`;
@@ -607,7 +607,7 @@ export class CheckListEditPage extends Page {
 					<button class="button grab svg" tabindex="-1"><icon src="assets/icons/grab.svg" alt="grab"></icon></button>
 					<label class="checkbox button svg"><input name="checked" type="checkbox" onchange="_onChecked" ${checked ? 'checked' : ''}/><icon src="assets/icons/check.svg" alt="check"></icon></label>
 					<span class="textarea-grower" data-replicated-value="${text}">
-						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput">${text}</textarea>
+						<textarea rows=1 class="input text" name="text" onkeydown="_onKeyDown" oninput="_onInput" onfocus="_onFocus">${text}</textarea>
 					</span>
 					<button class="button remove svg" onclick="_removeButtonPressed"><icon src="assets/icons/close.svg" alt="remove item"></icon></button>
 				</p>`;
