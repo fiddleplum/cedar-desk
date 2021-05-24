@@ -17,6 +17,12 @@ export class CedarDeskApp extends SimpleApp {
 	constructor() {
 		super();
 
+		// Initialize everything else.
+		this.initialize();
+	}
+
+	/** Initializes the asynchronous parts of the app. */
+	async initialize(): Promise<void> {
 		// Make the app always full size.
 		FullSize.init();
 
@@ -34,12 +40,13 @@ export class CedarDeskApp extends SimpleApp {
 		this.registerPage('check-list', CheckListPage);
 		this.registerPage('check-list-edit', CheckListEditPage);
 
-		// Initialize everything else.
-		this.initialize();
+		await this.loadConfig();
+		await this.connectToServer();
+		this.router.processURL();
 	}
 
-	async initialize(): Promise<void> {
-		// Load the config.
+	/** Loads the config. */
+	async loadConfig(): Promise<void> {
 		try {
 			this.setStatus('waiting', 'Loading configuration.');
 			const configJSON = await download('config.json', 'json');
@@ -55,8 +62,11 @@ export class CedarDeskApp extends SimpleApp {
 			this.setStatus('ready', 'Loaded configuration.');
 		}
 		catch { /* do nothing. */ }
+	}
 
-		// Connect to the web server.
+	/** Connects the the web server. */
+	async connectToServer(): Promise<void> {
+		this.query('.connecting-panel', HTMLElement)!.classList.add('visible');
 		this.setStatus('waiting', 'Connecting to server.');
 		const serverURL = this._config.get('serverURL');
 		if (typeof serverURL !== 'string' || serverURL === '') {
@@ -71,6 +81,7 @@ export class CedarDeskApp extends SimpleApp {
 			this.setStatus('error', 'Could not connect to server.');
 			return;
 		}
+		this.query('.connecting-panel', HTMLElement)!.classList.remove('visible');
 
 		// Authenticate the user or go to the login page.
 		this._user = Cookies.get('user');
@@ -116,7 +127,8 @@ export class CedarDeskApp extends SimpleApp {
 			this._goToLoginPage();
 		}
 
-		this.router.processURL();
+		// Call this same function if there is a disconnect.
+		this._ws.setCloseCallback(this.connectToServer.bind(this));
 	}
 
 	/** Destructs the app. */
@@ -218,6 +230,9 @@ CedarDeskApp.html = /* html */`
 			</div>
 		</div>
 		<div class="page"></div>
+		<div class="connecting-panel panel">
+			<div>Connecting...</div>
+		</div>
 	</body>
 	`;
 
@@ -317,6 +332,16 @@ CedarDeskApp.css = /* css */`
 	}
 	.CedarDeskApp .page.fadeIn {
 		opacity: 1;
+	}
+	.CedarDeskApp .connecting-panel {
+		display: none;
+		justify-content: center;
+		align-items: center;
+		opacity: 0.8;
+		font-size: 2rem;
+	}
+	.CedarDeskApp .connecting-panel.visible {
+		display: flex;
 	}
 	section {
 		background: var(--color5);
