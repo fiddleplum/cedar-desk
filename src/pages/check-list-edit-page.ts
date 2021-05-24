@@ -75,16 +75,14 @@ export class CheckListEditPage extends Page {
 		});
 		// Set the update interval for changed items.
 		this._intervalId = window.setInterval(() => {
-			for (const elem of this._changedElems) {
-				if (this.root.contains(elem)) {
-					this._sendUpdateTextCommand(elem);
-				}
-			}
+			this._saveTextChangedElems();
 		}, 5000);
 	}
 
 	/** The destructor. */
 	destroy(): void {
+		// Save any of our pending text changes.
+		this._saveTextChangedElems();
 		// Unregister as a websocket handler.
 		this.app.ws.unregisterHandler('check-list');
 		// Let the server know we don't want to receive check-list updates.
@@ -96,6 +94,7 @@ export class CheckListEditPage extends Page {
 			}
 		});
 		window.clearInterval(this._intervalId);
+		// Call the super.
 		super.destroy();
 	}
 
@@ -227,6 +226,14 @@ export class CheckListEditPage extends Page {
 		return NaN;
 	}
 
+	private _saveTextChangedElems(): void {
+		for (const elem of this._textChangedElems) {
+			if (this.root.contains(elem)) {
+				this._sendUpdateTextCommand(elem);
+			}
+		}
+	}
+
 	/** Sends an addItem command. */
 	private _sendAddItemCommand(elem: Element): void {
 		const checkedInputElem = elem.querySelector('[name="checked"]') as HTMLInputElement;
@@ -266,7 +273,7 @@ export class CheckListEditPage extends Page {
 			}
 		});
 		// Remove it from the changed inputs, since it has just been saved.
-		this._changedElems.delete(elem);
+		this._textChangedElems.delete(elem);
 	}
 
 	/** Sends an updateText command. */
@@ -284,7 +291,7 @@ export class CheckListEditPage extends Page {
 			}
 		});
 		// Remove it from the changed inputs, since it has just been saved.
-		this._changedElems.delete(elem);
+		this._textChangedElems.delete(elem);
 	}
 
 	/** Sends an update level command. */
@@ -542,7 +549,7 @@ export class CheckListEditPage extends Page {
 			this._processEnterKey(textAreaElem.parentElement!.parentElement!);
 		}
 		// Update the changed items list.
-		this._changedElems.add(textAreaElem.parentElement!.parentElement!);
+		this._textChangedElems.add(textAreaElem.parentElement!.parentElement!);
 		// Make sure the replicated-value is updated so that the other div's height is set.
 		(textAreaElem.parentNode as HTMLElement).dataset.replicatedValue = textAreaElem.value;
 	}
@@ -809,7 +816,7 @@ export class CheckListEditPage extends Page {
 	private _intervalId!: number;
 
 	/** The set of changed items. */
-	private _changedElems: Set<Element> = new Set();
+	private _textChangedElems: Set<Element> = new Set();
 
 	/** The initial x-value of the dragged item. */
 	private _refX: number = 0;
