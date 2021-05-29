@@ -1,4 +1,4 @@
-import { download } from 'pine-lib';
+import { download, JSONObject } from 'pine-lib';
 import { SimpleApp, Cookies, FullSize, WS } from 'elm-app';
 import { Page } from 'page';
 
@@ -83,6 +83,9 @@ export class CedarDeskApp extends SimpleApp {
 		}
 		this.query('.connecting-panel', HTMLElement)!.classList.remove('visible');
 
+		// Register as a websocket handler.
+		this._ws.registerHandler('users', this._responseHandler.bind(this));
+
 		// Authenticate the user or go to the login page.
 		this._user = Cookies.get('user');
 		const session = Cookies.get('session');
@@ -148,6 +151,19 @@ export class CedarDeskApp extends SimpleApp {
 		return this._user;
 	}
 
+	/** When a command is received from the server. */
+	private _responseHandler(response: JSONObject): void {
+		const command = response.command;
+		// The user logged out somewhere else, so log out here.
+		if (command === 'logout') {
+			// Clear the cookies.
+			Cookies.set('user', '', 0);
+			Cookies.set('session', '', 0);
+			// Reload the page.
+			location.reload();
+		}
+	}
+
 	/** Gets the page element. */
 	protected getPageElement(): HTMLElement {
 		return this.query('.page', HTMLElement)!;
@@ -196,9 +212,17 @@ export class CedarDeskApp extends SimpleApp {
 		}, true);
 	}
 
-	private _logout(): void {
+	/** Logs the user out. */
+	private async _logout(): Promise<void> {
+		// Clear the cookies.
 		Cookies.set('user', '', 0);
 		Cookies.set('session', '', 0);
+		// Send a logout command to the server.
+		// This will clear all sessions from any other logins of the same user.
+		await this._ws.send({
+			module: 'users',
+			command: 'logout'
+		});
 		location.reload();
 	}
 
